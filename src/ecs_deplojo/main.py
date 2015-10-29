@@ -40,14 +40,13 @@ class VarType(click.ParamType):
 
 
 @click.command()
-@click.option('--config', required=True)
+@click.option('--config', required=True, type=click.File())
 @click.option('--var', multiple=True, type=VarType())
 @click.option('--dry-run', is_flag=True, default=False)
 @click.option('--output-path', required=False, type=click.Path())
 def cli(config, var, output_path, dry_run):
+    config = yaml.load(config)
     template_vars = dict(var)
-    with open('config.yml') as fh:
-        config = yaml.load(fh)
 
     asg_name = config['auto_scaling_group']
     cluster_name = config['cluster_name']
