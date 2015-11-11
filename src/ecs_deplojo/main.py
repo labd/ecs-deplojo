@@ -41,6 +41,7 @@ class VarType(click.ParamType):
 @click.option('--dry-run', is_flag=True, default=False)
 @click.option('--output-path', required=False, type=click.Path())
 def cli(config, var, output_path, dry_run):
+    base_path = os.path.dirname(config.name)
     config = yaml.load(config)
     template_vars = dict(var)
 
@@ -54,7 +55,7 @@ def cli(config, var, output_path, dry_run):
         env_items = config['environment']['groups'][service_config['environment_group']]
         definition = generate_task_definition(
             service_config['task_definition'], env_items, template_vars,
-            service_config.get('overrides'), name=service_name)
+            service_config.get('overrides'), name=service_name, base_path=base_path)
 
         if output_path:
             write_task_definition(service_name, definition, output_path)
@@ -135,7 +136,11 @@ def transform_definition(definition):
 
 
 def generate_task_definition(filename, environment, template_vars, overrides,
-                             name):
+                             name, base_path=None):
+
+    if base_path:
+        filename = os.path.join(base_path, filename)
+
     with open(filename, 'rb') as fh:
         data = json.load(fh)
 
