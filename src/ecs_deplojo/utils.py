@@ -83,8 +83,13 @@ def downscale_services(ecs_client, services_config, cluster_name):
                 current_counts[name] = service['desiredCount']
                 new_counts[name] = num_instances - 1
 
-                logger.info(
-                    "Setting desiredCount for %s to %s", name, new_counts[name])
+                if new_counts[name] < 1:
+                    logger.warning(
+                        "%s - Refusing to set desiredCount < 1", name)
+                else:
+                    logger.info(
+                        "%s - Setting desiredCount to %s", name,
+                        new_counts[name])
 
                 ecs_client.update_service(
                     cluster=cluster_name,
