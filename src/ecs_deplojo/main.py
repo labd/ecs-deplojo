@@ -35,6 +35,14 @@ class VarType(click.ParamType):
         return (key, value)
 
 
+class Connection(object):
+    def __init__(self):
+        self.asg = boto3.client('autoscaling')
+        self.ecs = boto3.client('ecs')
+        self.ec2 = boto3.client('ec2')
+
+
+
 @click.command()
 @click.option('--config', required=True, type=click.File())
 @click.option('--var', multiple=True, type=VarType())
@@ -45,6 +53,7 @@ def cli(config, var, output_path, dry_run):
     config = yaml.load(config)
     template_vars = dict(var)
 
+    connection = Connection()
     asg_name = config['auto_scaling_group']
     cluster_name = config['cluster_name']
     logger.info("Starting deploy on cluster %s", cluster_name)
@@ -73,14 +82,11 @@ def cli(config, var, output_path, dry_run):
 
     # Register the task definitions in ECS
     if not dry_run:
-        asg = boto3.client('autoscaling')
-        ecs = boto3.client('ecs')
-        ec2 = boto3.client('ec2')
 
         # Update task definitions
         for service_name, values in task_definitions.iteritems():
             definition = transform_definition(values['definition'])
-            result = ecs.register_task_definition(**definition)
+            result = connection.ecs.register_task_definition(**definition)
 
             values['family'] = result['taskDefinition']['family']
             values['revision'] = result['taskDefinition']['revision']
@@ -90,7 +96,7 @@ def cli(config, var, output_path, dry_run):
                 values['family'], values['revision'])
 
         # Check if all services exist
-        response = ecs.describe_services(
+        response = connection.ecs.describe_services(
             cluster=cluster_name, services=task_definitions.keys())
         available_services = {
             service['serviceName'] for service in response['services']
@@ -99,7 +105,7 @@ def cli(config, var, output_path, dry_run):
 
         #with lock_deployment(asg, asg_name):
             # with raise_available_capacity(asg, ec2, ecs, asg_name, cluster_name) as new_ec2_instance_id:
-        with utils.downscale_services(ecs, config['services'], cluster_name):
+        with utils.downscale_services(connection, config['services'], cluster_name):
 
             # Update services
             for service_name, values in task_definitions.iteritems():
@@ -107,7 +113,7 @@ def cli(config, var, output_path, dry_run):
                 if service_name in new_services:
                     logger.info("Creating new service %s with task defintion %s:%s",
                                 service_name, values['family'], values['revision'])
-                    ecs.create_service(
+                    connection.ecs.create_service(
                         cluster=cluster_name,
                         serviceName=service_name,
                         desiredCount=1,
@@ -116,7 +122,7 @@ def cli(config, var, output_path, dry_run):
                 else:
                     logger.info("Updating service %s with task defintion %s:%s",
                                 service_name, values['family'], values['revision'])
-                    ecs.update_service(
+                    connection.ecs.update_service(
                         cluster=cluster_name,
                         service=service_name,
                         taskDefinition='%s:%s' % (
@@ -126,7 +132,7 @@ def cli(config, var, output_path, dry_run):
             # Wait till all service updates are deployed
             time.sleep(10)
             while True:
-                response = ecs.describe_services(
+                response = connection.ecs.describe_services(
                     cluster=cluster_name, services=task_definitions.keys())
                 time.sleep(5)
                 if all(len(s['deployments']) == 1 for s in response['services']):

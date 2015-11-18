@@ -52,14 +52,14 @@ def num_container_instances(ecs_client, cluster_name):
 
 
 @contextlib.contextmanager
-def downscale_services(ecs_client, services_config, cluster_name):
+def downscale_services(connection, services_config, cluster_name):
     """Update the number of tasks per service so that it is at max
     `number of containers - 1`.
 
 
     """
     # Find number of container instances
-    num_instances = num_container_instances(ecs_client, cluster_name)
+    num_instances = num_container_instances(connection.ecs, cluster_name)
 
     # Update services which require downscaling for deployment
     downscale_services = []
@@ -69,7 +69,7 @@ def downscale_services(ecs_client, services_config, cluster_name):
 
     if downscale_services:
 
-        response = ecs_client.describe_services(
+        response = connection.ecs.describe_services(
             cluster=cluster_name,
             services=downscale_services)
 
@@ -91,14 +91,14 @@ def downscale_services(ecs_client, services_config, cluster_name):
                         "%s - Setting desiredCount to %s", name,
                         new_counts[name])
 
-                ecs_client.update_service(
+                connection.ecs.update_service(
                     cluster=cluster_name,
                     service=name,
                     desiredCount=new_counts[name])
 
         # Poll completion
         while new_counts:
-            response = ecs_client.describe_services(
+            response = connection.ecs.describe_services(
                 cluster=cluster_name,
                 services=new_counts.keys())
 
@@ -117,21 +117,20 @@ def downscale_services(ecs_client, services_config, cluster_name):
                 "Re-setting desiredCount for %s to %s",
                 service_name, desired_count)
 
-            ecs_client.update_service(
+            connection.ecs.update_service(
                 cluster=cluster_name,
                 service=service_name,
                 desiredCount=desired_count)
 
 
 @contextlib.contextmanager
-def raise_available_capacity(asg_client, ec2_client, ecs_client, asg_name,
-                             cluster_name):
+def raise_available_capacity(connection, asg_name, cluster_name):
     """Start a new instance within the autoscaling group and yields the
     new instance id.
 
     """
     # Get number of running instances in the ASG
-    ec2_instance_ids = get_instance_ids(asg_client, asg_name)
+    ec2_instance_ids = get_instance_ids(connection.asg, asg_name)
 
     # Set capacity +1
     desired_instances = len(ec2_instance_ids) + 1
@@ -145,14 +144,14 @@ def raise_available_capacity(asg_client, ec2_client, ecs_client, asg_name,
     current_ec2_instance_ids = ec2_instance_ids
     while len(ec2_instance_ids) < desired_instances:
         time.sleep(5)
-        ec2_instance_ids = get_instance_ids(asg_client, asg_name)
+        ec2_instance_ids = get_instance_ids(connection.asg, asg_name)
 
     # The new instance id is the new set minus the old set
     ec2_instance_id = list(ec2_instance_ids - current_ec2_instance_ids)[0]
 
     logger.info("Waiting for instances to join the ECS cluster")
     while True:
-        response = ecs_client.describe_clusters(clusters=[cluster_name])
+        response = connection.ecs.describe_clusters(clusters=[cluster_name])
         num_container_instances = (
             response['clusters'][0]['registeredContainerInstancesCount'])
 
@@ -163,22 +162,21 @@ def raise_available_capacity(asg_client, ec2_client, ecs_client, asg_name,
 
     yield ec2_instance_id
 
-    _remove_oldest_instance(
-        asg_client, ec2_client, ecs_client, asg_name, cluster_name)
+    _remove_oldest_instance(connection, asg_name, cluster_name)
 
 
-def return_oldest_instance(asg_client, ec2_client, asg_name):
+def return_oldest_instance(connection, asg_name):
     """Return the oldest ec2 instance in the given asg group
 
     This might be done simpler :P
 
     """
-    result = asg_client.describe_auto_scaling_groups(
+    result = connection.asg.describe_auto_scaling_groups(
         AutoScalingGroupNames=[asg_name]
     )
     instances = result['AutoScalingGroups'][0]['Instances']
 
-    result = ec2_client.describe_instances(
+    result = connection.ec2.describe_instances(
         InstanceIds=[item['InstanceId'] for item in instances],
         Filters=[
             {
@@ -197,13 +195,12 @@ def return_oldest_instance(asg_client, ec2_client, asg_name):
     return instances[0]['InstanceId'] if instances else None
 
 
-def _remove_oldest_instance(asg_client, ec2_client, ecs_client, asg_name,
-                            cluster_name):
+def _remove_oldest_instance(connection, asg_name, cluster_name):
     """Remove the oldest container instance from the cluster"""
 
     # Scale down again by terminating the oldest instance
     logger.info("Terminating oldest instance")
-    instance_id = return_oldest_instance(asg_client, ec2_client, asg_name)
+    instance_id = return_oldest_instance(connection, asg_name)
     if not instance_id:
         raise ValueError("No instance found to terminate")
 
