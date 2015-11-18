@@ -52,10 +52,18 @@ def cli(config, var, output_path, dry_run):
     # Generate the task definitions
     task_definitions = {}
     for service_name, service_config in config['services'].iteritems():
-        env_items = config['environment']['groups'][service_config['environment_group']]
+        # Default environment
+        env_items = config.get('environment', {})
+
+        # Environment groups
+        env_group = service_config.get('environment_group')
+        if env_group:
+            env_items.update(config['environment_groups'][env_group])
+
         definition = generate_task_definition(
             service_config['task_definition'], env_items, template_vars,
-            service_config.get('overrides'), name=service_name, base_path=base_path)
+            service_config.get('overrides'), name=service_name,
+            base_path=base_path)
 
         if output_path:
             write_task_definition(service_name, definition, output_path)
