@@ -143,7 +143,7 @@ def transform_definition(definition):
     result = copy.deepcopy(definition)
     for container in result['containerDefinitions']:
         container['environment'] = [
-            {'name': k, 'value': v}
+            {'name': k, 'value': str(v)}
             for k, v in container['environment'].iteritems()
         ]
     return result
