@@ -90,10 +90,36 @@ def cli(config, var, output_path, dry_run):
 
             values['family'] = result['taskDefinition']['family']
             values['revision'] = result['taskDefinition']['revision']
-
+            values['name'] = '%s:%s' % (
+                result['taskDefinition']['family'],
+                result['taskDefinition']['revision'])
             logger.info(
-                "Registered new task definition %s:%s",
-                values['family'], values['revision'])
+                "Registered new task definition %s", values['name'])
+
+        # Execute task def
+        # XXX: Add code to wait for task
+        before_deploy = config.get('before_deploy', [])
+        for task in before_deploy:
+            result = connection.ecs.list_container_instances(cluster=cluster_name)
+            task_def = task_definitions[task['service']]
+            logger.info(
+                "Starting one-off task '%s' via %s (%s)",
+                task['command'], task_def['name'], task['container'])
+
+            response = connection.ecs.start_task(
+                cluster=cluster_name,
+                taskDefinition=task_def['name'],
+                overrides={
+                    'containerOverrides': [
+                        {
+                            'name': task['container'],
+                            'command': task['command'].split(),
+                        }
+                    ]
+                },
+                containerInstances=result[u'containerInstanceArns'],
+                startedBy='ecs-deplojo'
+            )
 
         # Check if all services exist
         response = connection.ecs.describe_services(
