@@ -194,8 +194,10 @@ def generate_task_definition(filename, environment, template_vars, overrides,
                 for key, value in container_overrides.iteritems():
                     if isinstance(container[key], list):
                         container[key].extend(value)
-                    else:
+                    elif isinstance(container[key], dict):
                         container[key].update(value)
+                    else:
+                        container[key] = value
 
         return data
 
