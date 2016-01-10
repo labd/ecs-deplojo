@@ -129,40 +129,35 @@ def cli(config, var, output_path, dry_run):
         }
         new_services = set(task_definitions.keys()) - available_services
 
-        #with lock_deployment(asg, asg_name):
-            # with raise_available_capacity(asg, ec2, ecs, asg_name, cluster_name) as new_ec2_instance_id:
-        with utils.downscale_services(connection, config['services'], cluster_name):
+        # Update services
+        for service_name, values in task_definitions.iteritems():
+            if service_name in new_services:
+                logger.info("Creating new service %s with task defintion %s:%s",
+                            service_name, values['family'], values['revision'])
+                connection.ecs.create_service(
+                    cluster=cluster_name,
+                    serviceName=service_name,
+                    desiredCount=1,
+                    taskDefinition='%s:%s' % (
+                        values['family'], values['revision']))
+            else:
+                logger.info("Updating service %s with task defintion %s:%s",
+                            service_name, values['family'], values['revision'])
+                connection.ecs.update_service(
+                    cluster=cluster_name,
+                    service=service_name,
+                    taskDefinition='%s:%s' % (
+                        values['family'], values['revision']))
 
-            # Update services
-            for service_name, values in task_definitions.iteritems():
-
-                if service_name in new_services:
-                    logger.info("Creating new service %s with task defintion %s:%s",
-                                service_name, values['family'], values['revision'])
-                    connection.ecs.create_service(
-                        cluster=cluster_name,
-                        serviceName=service_name,
-                        desiredCount=1,
-                        taskDefinition='%s:%s' % (
-                            values['family'], values['revision']))
-                else:
-                    logger.info("Updating service %s with task defintion %s:%s",
-                                service_name, values['family'], values['revision'])
-                    connection.ecs.update_service(
-                        cluster=cluster_name,
-                        service=service_name,
-                        taskDefinition='%s:%s' % (
-                            values['family'], values['revision']))
-
-            logger.info("Waiting for deployments")
-            # Wait till all service updates are deployed
-            time.sleep(10)
-            while True:
-                response = connection.ecs.describe_services(
-                    cluster=cluster_name, services=task_definitions.keys())
-                time.sleep(5)
-                if all(len(s['deployments']) == 1 for s in response['services']):
-                    break
+        logger.info("Waiting for deployments")
+        # Wait till all service updates are deployed
+        time.sleep(10)
+        while True:
+            response = connection.ecs.describe_services(
+                cluster=cluster_name, services=task_definitions.keys())
+            time.sleep(5)
+            if all(len(s['deployments']) == 1 for s in response['services']):
+                break
 
 
 def transform_definition(definition):
