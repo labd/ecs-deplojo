@@ -42,7 +42,6 @@ class Connection(object):
         self.ec2 = boto3.client('ec2')
 
 
-
 @click.command()
 @click.option('--config', required=True, type=click.File())
 @click.option('--var', multiple=True, type=VarType())
@@ -54,15 +53,16 @@ def cli(config, var, output_path, dry_run):
     template_vars = dict(var)
 
     connection = Connection()
-    asg_name = config['auto_scaling_group']
     cluster_name = config['cluster_name']
     logger.info("Starting deploy on cluster %s", cluster_name)
 
     # Generate the task definitions
     task_definitions = {}
     for service_name, service_config in config['services'].iteritems():
-        # Default environment
-        env_items = config.get('environment', {})
+        # Default environment. Always create a new dict instance since it is
+        # mutated.
+        env_items = {}
+        env_items.update(config.get('environment', {}))
 
         # Environment groups
         env_group = service_config.get('environment_group')
@@ -132,7 +132,7 @@ def cli(config, var, output_path, dry_run):
         # Update services
         for service_name, values in task_definitions.iteritems():
             if service_name in new_services:
-                logger.info("Creating new service %s with task defintion %s:%s",
+                logger.info("Creating new service %s with task definition %s:%s",
                             service_name, values['family'], values['revision'])
                 connection.ecs.create_service(
                     cluster=cluster_name,
