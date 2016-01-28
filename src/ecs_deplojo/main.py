@@ -16,7 +16,6 @@ import click
 import yaml
 
 from ecs_deplojo import utils
-from ecs_deplojo.utils import lock_deployment
 from ecs_deplojo.logger import logger
 
 
@@ -122,11 +121,9 @@ def cli(config, var, output_path, dry_run):
             )
 
         # Check if all services exist
-        response = connection.ecs.describe_services(
-            cluster=cluster_name, services=task_definitions.keys())
-        available_services = {
-            service['serviceName'] for service in response['services']
-        }
+        services = utils.describe_services(
+            connection.ecs, cluster=cluster_name, services=task_definitions.keys())
+        available_services = {service['serviceName'] for service in services}
         new_services = set(task_definitions.keys()) - available_services
 
         # Update services
@@ -153,10 +150,10 @@ def cli(config, var, output_path, dry_run):
         # Wait till all service updates are deployed
         time.sleep(10)
         while True:
-            response = connection.ecs.describe_services(
-                cluster=cluster_name, services=task_definitions.keys())
+            services = utils.describe_services(
+                connection.ecs, cluster=cluster_name, services=task_definitions.keys())
             time.sleep(5)
-            if all(len(s['deployments']) == 1 for s in response['services']):
+            if all(len(s['deployments']) == 1 for s in services):
                 break
 
 
