@@ -99,13 +99,12 @@ def cli(config, var, output_path, dry_run):
         # XXX: Add code to wait for task
         before_deploy = config.get('before_deploy', [])
         for task in before_deploy:
-            result = connection.ecs.list_container_instances(cluster=cluster_name)
             task_def = task_definitions[task['service']]
             logger.info(
                 "Starting one-off task '%s' via %s (%s)",
                 task['command'], task_def['name'], task['container'])
 
-            response = connection.ecs.start_task(
+            response = connection.ecs.run_task(
                 cluster=cluster_name,
                 taskDefinition=task_def['name'],
                 overrides={
@@ -116,7 +115,6 @@ def cli(config, var, output_path, dry_run):
                         }
                     ]
                 },
-                containerInstances=result[u'containerInstanceArns'],
                 startedBy='ecs-deplojo'
             )
 
