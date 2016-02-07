@@ -129,17 +129,53 @@ def cli(config, var, output_path, dry_run):
                     service=service_name,
                     taskDefinition=task_definition['name'])
 
-        logger.info("Waiting for deployments")
+        is_finished = wait_for_deployments(
+            connection, cluster_name, services.keys())
 
-        # Wait till all service updates are deployed
-        time.sleep(10)
-        while True:
-            current_services = utils.describe_services(
-                connection.ecs, cluster=cluster_name,
-                services=services.keys())
-            time.sleep(5)
-            if all(len(s['deployments']) == 1 for s in current_services):
-                break
+        if not is_finished:
+            sys.exit(1)
+
+
+def wait_for_deployments(connection, cluster_name, service_names):
+    logger.info("Waiting for deployments")
+    start_time = time.time()
+
+    def service_description(service):
+        """Return string in format of 'name (0/2)'"""
+        name = service['serviceName']
+        for deployment in service['deployments']:
+            if deployment.get('status') != 'PRIMARY':
+                continue
+
+            desired = deployment['desiredCount']
+            pending = deployment['pendingCount']
+            running = deployment['runningCount']
+
+            return '%s (%s/%s)' % (name, pending + running, desired)
+        return name
+
+    # Wait till all service updates are deployed
+    time.sleep(10)
+    while True:
+        services = utils.describe_services(
+            connection.ecs, cluster=cluster_name, services=service_names)
+
+        in_progress = [s for s in services if len(s['deployments']) > 1]
+        if in_progress:
+            logger.info(
+                "Waiting for services: %s",
+                ', '.join([service_description(s) for s in in_progress]))
+        else:
+            logger.info(
+                "Deployment finished: %s",
+                ', '.join([service_description(s) for s in services]))
+            break
+
+        time.sleep(5)
+        if time.time() - start_time > (60 * 15):
+            logger.error("Giving up after 15 minutes")
+            return False
+    return True
 
 
 def generate_task_definitions(config, template_vars, base_path,
