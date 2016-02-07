@@ -1,10 +1,7 @@
 #!/usr/bin/env python
-import contextlib
 import copy
-import itertools
+import sys
 import json
-import logging
-import operator
 import os.path
 import re
 import time
@@ -117,6 +114,11 @@ def cli(config, var, output_path, dry_run):
                 },
                 startedBy='ecs-deplojo'
             )
+            if response.get('failures'):
+                logger.error(
+                    "Error executing starting one-off task: %r",
+                    response['failures'])
+                sys.exit(1)
 
         # Check if all services exist
         services = utils.describe_services(
@@ -145,6 +147,7 @@ def cli(config, var, output_path, dry_run):
                         values['family'], values['revision']))
 
         logger.info("Waiting for deployments")
+
         # Wait till all service updates are deployed
         time.sleep(10)
         while True:
