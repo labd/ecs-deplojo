@@ -50,53 +50,32 @@ def cli(config, var, output_path, dry_run):
 
     connection = Connection()
     cluster_name = config['cluster_name']
-    logger.info("Starting deploy on cluster %s", cluster_name)
+    services = config['services']
+    logger.info(
+        "Starting deploy on cluster %s (%s services)",
+        cluster_name, len(services))
 
     # Generate the task definitions
-    task_definitions = {}
-    for service_name, service_config in config['services'].iteritems():
-        # Default environment. Always create a new dict instance since it is
-        # mutated.
-        env_items = {}
-        env_items.update(config.get('environment', {}))
+    task_definitions = generate_task_definitions(
+        config, template_vars, base_path, output_path)
 
-        # Environment groups
-        env_group = service_config.get('environment_group')
-        if env_group:
-            env_items.update(config['environment_groups'][env_group])
+    # Check if all task definitions required by the services exists
+    for service_name, service in services.iteritems():
+        if service['task_definition'] not in task_definitions:
+            logger.error(
+                "Missing task definition %r for service %r",
+                service['task_definition'], service_name)
 
-        definition = generate_task_definition(
-            service_config['task_definition'], env_items, template_vars,
-            service_config.get('overrides'), name=service_name,
-            base_path=base_path)
-
-        if output_path:
-            write_task_definition(service_name, definition, output_path)
-        task_definitions[service_name] = {
-            'definition': definition,
-        }
-
-    # Register the task definitions in ECS
     if not dry_run:
 
-        # Update task definitions
-        for service_name, values in task_definitions.iteritems():
-            definition = transform_definition(values['definition'])
-            result = connection.ecs.register_task_definition(**definition)
-
-            values['family'] = result['taskDefinition']['family']
-            values['revision'] = result['taskDefinition']['revision']
-            values['name'] = '%s:%s' % (
-                result['taskDefinition']['family'],
-                result['taskDefinition']['revision'])
-            logger.info(
-                "Registered new task definition %s", values['name'])
+        # Register the task definitions in ECS
+        register_task_definitions(connection, task_definitions)
 
         # Execute task def
         # XXX: Add code to wait for task
         before_deploy = config.get('before_deploy', [])
         for task in before_deploy:
-            task_def = task_definitions[task['service']]
+            task_def = task_definitions[task['task_definition']]
             logger.info(
                 "Starting one-off task '%s' via %s (%s)",
                 task['command'], task_def['name'], task['container'])
@@ -112,50 +91,99 @@ def cli(config, var, output_path, dry_run):
                         }
                     ]
                 },
-                startedBy='ecs-deplojo'
+                startedBy='ecs-deplojo',
+                count=1
             )
             if response.get('failures'):
                 logger.error(
-                    "Error executing starting one-off task: %r",
-                    response['failures'])
+                    "Error starting one-off task: %r", response['failures'])
                 sys.exit(1)
 
         # Check if all services exist
-        services = utils.describe_services(
-            connection.ecs, cluster=cluster_name, services=task_definitions.keys())
-        available_services = {service['serviceName'] for service in services}
+        existing_services = utils.describe_services(
+            connection.ecs, cluster=cluster_name,
+            services=task_definitions.keys())
+        available_services = {
+            service['serviceName'] for service in existing_services
+        }
         new_services = set(task_definitions.keys()) - available_services
 
         # Update services
-        for service_name, values in task_definitions.iteritems():
+        for service_name, service in services.iteritems():
+            task_definition = task_definitions[service['task_definition']]
             if service_name in new_services:
-                logger.info("Creating new service %s with task definition %s:%s",
-                            service_name, values['family'], values['revision'])
+                logger.info(
+                    "Creating new service %s with task definition %s:%s",
+                    service_name, task_definition['name'])
                 connection.ecs.create_service(
                     cluster=cluster_name,
                     serviceName=service_name,
                     desiredCount=1,
-                    taskDefinition='%s:%s' % (
-                        values['family'], values['revision']))
+                    taskDefinition=task_definition['name'])
             else:
-                logger.info("Updating service %s with task defintion %s:%s",
-                            service_name, values['family'], values['revision'])
+                logger.info(
+                    "Updating service %s with task defintion %s",
+                    service_name, task_definition['name'])
                 connection.ecs.update_service(
                     cluster=cluster_name,
                     service=service_name,
-                    taskDefinition='%s:%s' % (
-                        values['family'], values['revision']))
+                    taskDefinition=task_definition['name'])
 
         logger.info("Waiting for deployments")
 
         # Wait till all service updates are deployed
         time.sleep(10)
         while True:
-            services = utils.describe_services(
-                connection.ecs, cluster=cluster_name, services=task_definitions.keys())
+            current_services = utils.describe_services(
+                connection.ecs, cluster=cluster_name,
+                services=services.keys())
             time.sleep(5)
-            if all(len(s['deployments']) == 1 for s in services):
+            if all(len(s['deployments']) == 1 for s in current_services):
                 break
+
+
+def generate_task_definitions(config, template_vars, base_path,
+                              output_path=None):
+    """Generate the task definitions"""
+    task_definitions = {}
+    for name, info in config['task_definitions'].iteritems():
+        # Default environment. Always create a new dict instance since it is
+        # mutated.
+        env_items = {}
+        env_items.update(config.get('environment', {}))
+
+        # Environment groups
+        env_group = info.get('environment_group')
+        if env_group:
+            env_items.update(config['environment_groups'][env_group])
+
+        definition = generate_task_definition(
+            info['template'], env_items, template_vars,
+            info.get('overrides'), name=name,
+            base_path=base_path)
+
+        if output_path:
+            write_task_definition(name, definition, output_path)
+        task_definitions[name] = {
+            'definition': definition,
+        }
+    return task_definitions
+
+
+def register_task_definitions(connection, task_definitions):
+    """Update task definitions"""
+
+    for service_name, values in task_definitions.iteritems():
+        definition = transform_definition(values['definition'])
+        result = connection.ecs.register_task_definition(**definition)
+
+        values['family'] = result['taskDefinition']['family']
+        values['revision'] = result['taskDefinition']['revision']
+        values['name'] = '%s:%s' % (
+            result['taskDefinition']['family'],
+            result['taskDefinition']['revision'])
+        logger.info(
+            "Registered new task definition %s", values['name'])
 
 
 def transform_definition(definition):
