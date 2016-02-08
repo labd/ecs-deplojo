@@ -74,6 +74,7 @@ def cli(config, var, output_path, dry_run):
         # Execute task def
         # XXX: Add code to wait for task
         before_deploy = config.get('before_deploy', [])
+        num = 0
         for task in before_deploy:
             task_def = task_definitions[task['task_definition']]
             logger.info(
@@ -97,7 +98,14 @@ def cli(config, var, output_path, dry_run):
             if response.get('failures'):
                 logger.error(
                     "Error starting one-off task: %r", response['failures'])
-                sys.exit(1)
+
+                # If we already started one task then we keep retrying until
+                # the previous task is finished.
+                if num < 1 or num > 30:
+                    time.sleep(5)
+                else:
+                    sys.exit(1)
+            num += 1
 
         # Check if all services exist
         existing_services = utils.describe_services(
