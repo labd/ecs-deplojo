@@ -101,7 +101,7 @@ def cli(config, var, output_path, dry_run):
 
                 # If we already started one task then we keep retrying until
                 # the previous task is finished.
-                if num < 1 or num > 30:
+                if num > 0 and num <= 30:
                     time.sleep(5)
                 else:
                     sys.exit(1)
