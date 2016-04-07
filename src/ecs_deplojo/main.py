@@ -121,7 +121,7 @@ def cli(config, var, output_path, dry_run):
             task_definition = task_definitions[service['task_definition']]
             if service_name in new_services:
                 logger.info(
-                    "Creating new service %s with task definition %s:%s",
+                    "Creating new service %s with task definition %s",
                     service_name, task_definition['name'])
                 connection.ecs.create_service(
                     cluster=cluster_name,
