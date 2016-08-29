@@ -257,9 +257,9 @@ def generate_task_definition(filename, environment, template_vars, overrides,
             if overrides:
                 container_overrides = overrides.get(container['name'], {})
                 for key, value in container_overrides.iteritems():
-                    if isinstance(container[key], list):
+                    if key in container and isinstance(container[key], list):
                         container[key].extend(value)
-                    elif isinstance(container[key], dict):
+                    elif key in container and isinstance(container[key], dict):
                         container[key].update(value)
                     else:
                         container[key] = value
