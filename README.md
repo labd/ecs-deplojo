@@ -40,17 +40,22 @@ task_definitions:
           - hostPort: 0
             containerPort: 8080
             protocol: tcp
-  migrate:
-    template: task_definitions/migrate.json
+  manage:
+    template: task_definitions/manage.json
 
 services:
   web: 
     task_definition: web
 
 before_deploy:
-  - task_definition: migrate
+  - task_definition: manage
     container: uwsgi
     command: manage.py migrate --noinput
+
+after_deploy:
+  - task_definition: manage
+    container: uwsgi
+    command: manage.py clearsessions
 ```
 
 ## Example log output
@@ -58,11 +63,12 @@ before_deploy:
 ```
 Starting deploy on cluster example (1 services)
 Registered new task definition web:10
-Starting one-off task 'manage.py migrate --noinput' via migrate:10 (uwsgi)
+Starting one-off task 'manage.py migrate --noinput' via manage:10 (uwsgi)
 Updating service web with task defintion web:10
 Waiting for deployments
 Waiting for services: web (0/2)
 Waiting for services: web (1/2)
 Waiting for services: web (2/2)
 Deployment finished: web (2/2)
+Starting one-off task 'manage.py clearsessions' via manage:10 (uwsgi)
 ```
