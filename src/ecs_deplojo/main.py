@@ -71,41 +71,10 @@ def cli(config, var, output_path, dry_run):
         # Register the task definitions in ECS
         register_task_definitions(connection, task_definitions)
 
-        # Execute task def
-        # XXX: Add code to wait for task
-        before_deploy = config.get('before_deploy', [])
-        num = 0
-        for task in before_deploy:
-            task_def = task_definitions[task['task_definition']]
-            logger.info(
-                "Starting one-off task '%s' via %s (%s)",
-                task['command'], task_def['name'], task['container'])
-
-            response = connection.ecs.run_task(
-                cluster=cluster_name,
-                taskDefinition=task_def['name'],
-                overrides={
-                    'containerOverrides': [
-                        {
-                            'name': task['container'],
-                            'command': task['command'].split(),
-                        }
-                    ]
-                },
-                startedBy='ecs-deplojo',
-                count=1
-            )
-            if response.get('failures'):
-                logger.error(
-                    "Error starting one-off task: %r", response['failures'])
-
-                # If we already started one task then we keep retrying until
-                # the previous task is finished.
-                if num > 0 and num <= 30:
-                    time.sleep(5)
-                else:
-                    sys.exit(1)
-            num += 1
+        # Run tasks before deploying services
+        tasks_before_deploy = config.get('before_deploy', [])
+        run_tasks(
+            connection, cluster_name, task_definitions, tasks_before_deploy)
 
         # Check if all services exist
         existing_services = utils.describe_services(
@@ -142,6 +111,11 @@ def cli(config, var, output_path, dry_run):
 
         if not is_finished:
             sys.exit(1)
+
+        # Run tasks after deploying services
+        tasks_after_deploy = config.get('after_deploy', [])
+        run_tasks(
+            connection, cluster_name, task_definitions, tasks_after_deploy)
 
 
 def wait_for_deployments(connection, cluster_name, service_names):
@@ -184,6 +158,42 @@ def wait_for_deployments(connection, cluster_name, service_names):
             logger.error("Giving up after 15 minutes")
             return False
     return True
+
+
+def run_tasks(connection, cluster_name, task_definitions, tasks):
+    num = 0
+
+    for task in tasks:
+        task_def = task_definitions[task['task_definition']]
+        logger.info(
+            "Starting one-off task '%s' via %s (%s)",
+            task['command'], task_def['name'], task['container'])
+
+        response = connection.ecs.run_task(
+            cluster=cluster_name,
+            taskDefinition=task_def['name'],
+            overrides={
+                'containerOverrides': [
+                    {
+                        'name': task['container'],
+                        'command': task['command'].split(),
+                    }
+                ]
+            },
+            startedBy='ecs-deplojo',
+            count=1
+        )
+        if response.get('failures'):
+            logger.error(
+                "Error starting one-off task: %r", response['failures'])
+
+            # If we already started one task then we keep retrying until
+            # the previous task is finished.
+            if num > 0 and num <= 30:
+                time.sleep(5)
+            else:
+                sys.exit(1)
+        num += 1
 
 
 def generate_task_definitions(config, template_vars, base_path,
