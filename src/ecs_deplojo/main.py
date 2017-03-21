@@ -60,7 +60,7 @@ def cli(config, var, output_path, dry_run):
         config, template_vars, base_path, output_path)
 
     # Check if all task definitions required by the services exists
-    for service_name, service in services.iteritems():
+    for service_name, service in services.items():
         if service['task_definition'] not in task_definitions:
             logger.error(
                 "Missing task definition %r for service %r",
@@ -117,7 +117,7 @@ def cli(config, var, output_path, dry_run):
         new_services = set(task_definitions.keys()) - available_services
 
         # Update services
-        for service_name, service in services.iteritems():
+        for service_name, service in services.items():
             task_definition = task_definitions[service['task_definition']]
             if service_name in new_services:
                 logger.info(
@@ -190,7 +190,7 @@ def generate_task_definitions(config, template_vars, base_path,
                               output_path=None):
     """Generate the task definitions"""
     task_definitions = {}
-    for name, info in config['task_definitions'].iteritems():
+    for name, info in config['task_definitions'].items():
         # Default environment. Always create a new dict instance since it is
         # mutated.
         env_items = {}
@@ -217,7 +217,7 @@ def generate_task_definitions(config, template_vars, base_path,
 def register_task_definitions(connection, task_definitions):
     """Update task definitions"""
 
-    for service_name, values in task_definitions.iteritems():
+    for service_name, values in task_definitions.items():
         definition = transform_definition(values['definition'])
         result = connection.ecs.register_task_definition(**definition)
 
@@ -235,7 +235,7 @@ def transform_definition(definition):
     for container in result['containerDefinitions']:
         container['environment'] = [
             {'name': k, 'value': str(v)}
-            for k, v in container['environment'].iteritems()
+            for k, v in container['environment'].items()
         ]
     return result
 
@@ -256,7 +256,7 @@ def generate_task_definition(filename, environment, template_vars, overrides,
 
             if overrides:
                 container_overrides = overrides.get(container['name'], {})
-                for key, value in container_overrides.iteritems():
+                for key, value in container_overrides.items():
                     if key in container and isinstance(container[key], list):
                         container[key].extend(value)
                     elif key in container and isinstance(container[key], dict):
