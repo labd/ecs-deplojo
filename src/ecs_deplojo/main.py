@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 import copy
-import sys
 import json
 import os.path
 import re
+import sys
 import time
 import tokenize
 from string import Template
@@ -251,7 +251,8 @@ def generate_task_definition(filename, environment, template_vars, overrides,
 
         data['family'] = name
         for container in data['containerDefinitions']:
-            container['image'] = Template(container['image']).substitute(template_vars)
+            container['image'] = Template(
+                container['image']).substitute(template_vars)
             container['environment'] = environment
 
             if overrides:
