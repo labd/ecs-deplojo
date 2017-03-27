@@ -1,0 +1,39 @@
+{
+  "family": "default",
+  "volumes": [
+
+  ],
+  "containerDefinitions": [
+    {
+      "name": "default",
+      "image": "${image}",
+      "essential": true,
+      "command": [
+        "hello",
+        "world"
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "default",
+          "awslogs-region": "eu-west-1"
+        }
+      },
+      "memory": 256,
+      "cpu": 0,
+      "portMappings": [
+        {
+          "containerPort": 8080,
+          "hostPort": 0
+        }
+      ],
+      "ulimits": [
+        {
+          "name": "nofile",
+          "hardLimit": 65536,
+          "softLimit": 65536
+        }
+      ]
+    }
+  ]
+}
