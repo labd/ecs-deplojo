@@ -1,12 +1,10 @@
-from ecs_deplojo import main
-
 from click.testing import CliRunner
 
+from ecs_deplojo import main
 from tests.utils import deindent_text
 
-def test_new_service(tmpdir, connection, monkeypatch, caplog):
-    connection.ecs.create_cluster(clusterName='default')
 
+def test_new_service(tmpdir, cluster, monkeypatch, caplog):
     monkeypatch.setattr(main, 'POLL_TIME', 0.001)
 
     data = """
@@ -72,6 +70,17 @@ def test_new_service(tmpdir, connection, monkeypatch, caplog):
       web:
         task_definition: web
 
+    before_deploy:
+      - task_definition: web
+        container: web-1
+        command: manage.py migrate --noinput
+
+    after_deploy:
+      - task_definition: web
+        container: web-1
+        command: manage.py clearsessions
+
+
     """ % {
         'template_filename': filename.strpath
     })
@@ -87,11 +96,13 @@ def test_new_service(tmpdir, connection, monkeypatch, caplog):
     assert result.exit_code == 0, result.output
 
     expected = [
-        'Starting deploy on cluster default (1 services)',
-        'Registered new task definition web:1',
-        'Creating new service web with task definition web:1',
-        'Waiting for deployments',
-        'Deployment finished: web (1/1)',
+        "Starting deploy on cluster default (1 services)",
+        "Registered new task definition web:1",
+        "Starting one-off task 'manage.py migrate --noinput' via web:1 (web-1)",
+        "Creating new service web with task definition web:1",
+        "Waiting for deployments",
+        "Deployment finished: web (1/1)",
+        "Starting one-off task 'manage.py clearsessions' via web:1 (web-1)",
     ]
     lines = [r.message for r in caplog.records() if r.name.startswith('deploy')]
     assert lines == expected

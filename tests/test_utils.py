@@ -1,4 +1,5 @@
 from ecs_deplojo.main import transform_definition
+from ecs_deplojo import utils
 
 
 def test_definition(definition):
@@ -18,3 +19,36 @@ def test_definition(definition):
             'value': 'True',
         },
     ]
+
+
+# def test_describe_services(connection):
+#     task_definition = {
+#         'family': 'my-task-def',
+#         'volumes': [],
+#         'containerDefinitions': [
+#             {
+#                 'name': 'default',
+#                 'image': 'my-docker-image:1.0',
+#                 'essential': True,
+#                 'command': ['hello', 'world'],
+#                 'memory': 256,
+#                 'cpu': 0,
+#                 'portMappings': [],
+#                 'environment': {}
+#             }
+#         ]
+#     }
+
+#     connection.ecs.create_cluster(clusterName='default')
+#     connection.ecs.create_service(
+#         cluster='default',
+#         serviceName='my-service',
+#         desiredCount=1,
+#         taskDefinition=task_definition)
+
+#     result = utils.describe_services(
+#         connection.ecs,
+#         'default',
+#         services=['my-service'])
+
+#     assert result == ['1']
