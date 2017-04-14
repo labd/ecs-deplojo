@@ -36,9 +36,7 @@ class VarType(click.ParamType):
 
 class Connection(object):
     def __init__(self):
-        self.asg = boto3.client('autoscaling')
         self.ecs = boto3.client('ecs')
-        self.ec2 = boto3.client('ec2')
 
 
 @click.command()
