@@ -1,17 +1,17 @@
 #!/usr/bin/env python
 import copy
-import sys
 import json
 import os.path
 import re
+import sys
 import time
 import tokenize
 from string import Template
 
-import boto3
 import click
-import yaml
 
+import boto3
+import yaml
 from ecs_deplojo import utils
 from ecs_deplojo.logger import logger
 from ecs_deplojo.task_definitions import generate_task_definitions
