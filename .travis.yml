@@ -1,0 +1,33 @@
+---
+sudo: false
+language: python
+
+matrix:
+  include:
+    - python: 2.7
+      env: TOXENV=py27
+    - python: 3.6
+      env: TOXENV=py36
+
+before_cache:
+  - rm -rf $HOME/.cache/pip/log
+
+cache:
+  directories:
+    - $HOME/.cache/pip
+
+deps:
+  - codecov
+
+install:
+  - pip install tox codecov
+
+script:
+  - tox -e $TOXENV
+
+after_success:
+  - tox -e coverage-report
+  - codecov
+
+notifications:
+  email: false
