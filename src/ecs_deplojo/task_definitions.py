@@ -51,8 +51,6 @@ def generate_task_definition(filename, environment, template_vars, overrides,
     if base_path:
         filename = os.path.join(base_path, filename)
 
-    print(overrides)
-
     with open(filename, 'rb') as fh:
         data = json.load(fh)
 
@@ -76,5 +74,5 @@ def generate_task_definition(filename, environment, template_vars, overrides,
 
 def write_task_definition(name, definition, output_path):
     filename = os.path.join(output_path, '%s.json' % name)
-    with open(filename, 'wb') as fh:
+    with open(filename, 'w') as fh:
         json.dump(definition, fh, indent=4)

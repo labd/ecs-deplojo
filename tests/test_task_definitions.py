@@ -313,4 +313,68 @@ def test_generate_task_definitions(tmpdir):
             }
         }
     }
+
     assert result == expected
+
+
+def test_generate_task_definitions_write_output(tmpdir):
+    task_data = """
+    {
+      "family": "default",
+      "volumes": [],
+      "containerDefinitions": [
+        {
+          "name": "web-1",
+          "image": "${image}",
+          "essential": true,
+          "command": ["hello", "world"],
+          "memory": 256,
+          "logConfiguration": {},
+          "cpu": 0,
+          "portMappings": [
+            {
+              "containerPort": 8080,
+              "hostPort": 0
+            }
+          ]
+        }
+      ]
+    }
+    """.strip()
+    base_path = tmpdir.join('input').mkdir()
+
+    filename = base_path.join('task_definition.json')
+    filename.write(task_data)
+
+    config = {
+        'environment': {
+            'DATABASE_URL': 'postgresql://',
+        },
+        'task_definitions': {
+            'task-def-1': {
+                'template': 'task_definition.json',
+                'overrides': {
+                    'web-1': {
+                        'memory': 512,
+                        "logConfiguration": {
+                            "logDriver": "awslogs",
+                            "options": {
+                                "awslogs-group": "default",
+                                "awslogs-region": "eu-west-1"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    task_definitions.generate_task_definitions(
+        config,
+        template_vars={
+            'image': 'my-docker-image:1.0',
+        },
+        base_path=base_path.strpath,
+        output_path=tmpdir.join('output').mkdir().strpath)
+
+    assert tmpdir.join('output').join('task-def-1.json').exists()
