@@ -16,11 +16,11 @@ Status
 .. image:: https://readthedocs.org/projects/ecs-deplojo/badge/?version=latest
     :target: https://readthedocs.org/projects/ecs-deplojo/
    
-.. image:: https://travis-ci.org/labd/ecs-deplojo.svg?branch=master
-    :target: https://travis-ci.org/labd/ecs-deplojo
+.. image:: https://travis-ci.org/LabD/ecs-deplojo.svg?branch=master
+    :target: https://travis-ci.org/LabD/ecs-deplojo
 
-.. image:: http://codecov.io/github/labd/ecs-deplojo/coverage.svg?branch=master 
-    :target: http://codecov.io/github/labd/ecs-deplojo?branch=master
+.. image:: http://codecov.io/github/LabD/ecs-deplojo/coverage.svg?branch=master 
+    :target: http://codecov.io/github/LabD/ecs-deplojo?branch=master
 
 .. image:: https://img.shields.io/pypi/v/ecs-deplojo.svg
     :target: https://pypi.python.org/pypi/ecs-deplojo/
