@@ -16,6 +16,8 @@ from ecs_deplojo.exceptions import DeploymentFailed
 from ecs_deplojo.logger import logger
 from ecs_deplojo.task_definitions import generate_task_definitions
 
+POLL_TIME = 5
+
 
 class VarType(click.ParamType):
     name = 'var'
@@ -55,6 +57,7 @@ def main(config, var, output_path, dry_run):
     logger.info(
         "Starting deploy on cluster %s (%s services)",
         cluster_name, len(services))
+
 
     # Generate the task definitions
     task_definitions = generate_task_definitions(
@@ -164,7 +167,7 @@ def wait_for_deployments(connection, cluster_name, service_names):
         return name
 
     # Wait till all service updates are deployed
-    time.sleep(10)
+    time.sleep(POLL_TIME)
     while True:
         services = utils.describe_services(
             connection.ecs, cluster=cluster_name, services=service_names)

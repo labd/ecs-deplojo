@@ -2,9 +2,25 @@ import json
 import os
 
 import pytest
+import moto
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+@pytest.yield_fixture(scope="function")
+def connection():
+    moto.mock_autoscaling().start()
+    moto.mock_ecs().start()
+    moto.mock_ec2().start()
+
+    from ecs_deplojo import main
+
+    yield main.Connection()
+
+    moto.mock_autoscaling().stop()
+    moto.mock_ecs().stop()
+    moto.mock_ec2().stop()
 
 
 @pytest.fixture
