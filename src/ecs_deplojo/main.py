@@ -119,6 +119,9 @@ def cli(config, var, output_path, dry_run):
 
 
 def wait_for_deployments(connection, cluster_name, service_names):
+    """Poll ECS until all deployments are finished (status = PRIMARY)
+
+    """
     logger.info("Waiting for deployments")
     start_time = time.time()
 
@@ -161,6 +164,19 @@ def wait_for_deployments(connection, cluster_name, service_names):
 
 
 def run_tasks(connection, cluster_name, task_definitions, tasks):
+    """Run one-off tasks.
+
+
+    :parameter connection: The internal connection object.
+    :type connection: Connection
+    :parameter cluster_name: The cluster name to run the task on
+    :type cluster_name: str
+    :parameter task_definitions: dict of task definitions.
+    :type task_definitions: dict
+    :parameter tasks: list of tasks to run.
+    :type tasks: list
+
+    """
     num = 0
 
     for task in tasks:
