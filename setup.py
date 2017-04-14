@@ -27,8 +27,6 @@ setup(
     install_requires=install_requires,
     tests_require=tests_requires,
     extras_require={'test': tests_requires},
-    setup_requires=['setuptools_scm'],
-    use_scm_version=True,
     package_dir={'': 'src'},
     packages=find_packages('src'),
     include_package_data=True,
