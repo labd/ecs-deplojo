@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import copy
+import operator
 import os.path
 import re
 import sys
@@ -254,8 +255,9 @@ def register_task_definitions(connection, task_definitions):
 def transform_definition(definition):
     result = copy.deepcopy(definition)
     for container in result['containerDefinitions']:
-        container['environment'] = [
+        container['environment'] = sorted([
             {'name': k, 'value': str(v)}
             for k, v in container['environment'].items()
-        ]
+        ], key=operator.itemgetter('name'))
+
     return result

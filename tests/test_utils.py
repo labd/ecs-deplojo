@@ -10,11 +10,11 @@ def test_definition(definition):
 
     assert result['containerDefinitions'][0]['environment'] == [
         {
-            'name': 'DEBUG',
-            'value': 'True',
-        },
-        {
             'name': 'AWS_REGION',
             'value': 'eu-west-1',
+        },
+        {
+            'name': 'DEBUG',
+            'value': 'True',
         },
     ]
