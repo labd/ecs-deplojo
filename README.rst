@@ -47,6 +47,8 @@ Example configuration
 ---------------------
 
 .. code-block:: yaml
+
+    ---
     cluster_name: example
 
     environment:
