@@ -4,7 +4,7 @@ from click.testing import CliRunner
 
 from tests.utils import deindent_text
 
-def test_new_service(tmpdir, connection, monkeypatch):
+def test_new_service(tmpdir, connection, monkeypatch, caplog):
     connection.ecs.create_cluster(clusterName='default')
 
     monkeypatch.setattr(main, 'POLL_TIME', 0.001)
@@ -85,3 +85,13 @@ def test_new_service(tmpdir, connection, monkeypatch):
         '--var=image=my-docker-image:1.0'
     ])
     assert result.exit_code == 0, result.output
+
+    expected = [
+        'Starting deploy on cluster default (1 services)',
+        'Registered new task definition web:1',
+        'Creating new service web with task definition web:1',
+        'Waiting for deployments',
+        'Deployment finished: web (1/1)',
+    ]
+    lines = [r.message for r in caplog.records() if r.name.startswith('deploy')]
+    assert lines == expected

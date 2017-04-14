@@ -15,6 +15,7 @@ tests_requires = [
     'moto==0.4.31',
     'pytest==3.0.7',
     'pytest-cov==2.4.0',
+    'pytest-capturelog==0.7',
 ]
 
 with open('README.rst') as fh:
