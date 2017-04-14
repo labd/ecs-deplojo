@@ -20,7 +20,7 @@ setup(
     name='ecs-deplojo',
     version='0.2.0',
     author='Lab Digital B.V.',
-    author_email='info@labdigital.nl',
+    author_email='opensource@labdigital.nl',
     url='https://www.github.com/labd/ecs-deplojo/',
     description="Deployment tool for Amazon ECS",
     zip_safe=False,
@@ -35,9 +35,16 @@ setup(
             'ecs-deplojo = ecs_deplojo.main:cli'
         }
     },
-    license='Proprietary',
+    license='MIT',
     classifiers=[
-        'Private :: Do Not Upload',
-        'License :: Other/Proprietary License',
+        'Development Status :: 5 - Production/Stable',
+        'License :: OSI Approved :: MIT License',
+        'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.3',
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
     ],
 )
