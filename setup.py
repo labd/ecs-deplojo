@@ -1,3 +1,5 @@
+import re
+
 from setuptools import setup, find_packages
 
 
@@ -15,6 +17,9 @@ tests_requires = [
     'pytest-cov==2.4.0',
 ]
 
+with open('README.rst') as fh:
+    long_description = re.sub(
+        '^.. start-no-pypi.*^.. end-no-pypi', '', fh.read(), flags=re.M | re.S)
 
 setup(
     name='ecs-deplojo',
@@ -23,6 +28,7 @@ setup(
     author_email='opensource@labdigital.nl',
     url='https://www.github.com/labd/ecs-deplojo/',
     description="Deployment tool for Amazon ECS",
+    long_description=long_description,
     zip_safe=False,
     install_requires=install_requires,
     tests_require=tests_requires,
