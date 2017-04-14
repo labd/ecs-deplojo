@@ -1,18 +1,17 @@
 #!/usr/bin/env python
 import copy
-import json
 import os.path
 import re
 import sys
 import time
 import tokenize
-from string import Template
-
-import click
 
 import boto3
+import click
 import yaml
+
 from ecs_deplojo import utils
+from ecs_deplojo.exceptions import DeploymentFailed
 from ecs_deplojo.logger import logger
 from ecs_deplojo.task_definitions import generate_task_definitions
 
@@ -44,7 +43,7 @@ class Connection(object):
 @click.option('--var', multiple=True, type=VarType())
 @click.option('--dry-run', is_flag=True, default=False)
 @click.option('--output-path', required=False, type=click.Path())
-def cli(config, var, output_path, dry_run):
+def main(config, var, output_path, dry_run):
     base_path = os.path.dirname(config.name)
     config = yaml.load(config)
     template_vars = dict(var)
@@ -67,56 +66,79 @@ def cli(config, var, output_path, dry_run):
                 "Missing task definition %r for service %r",
                 service['task_definition'], service_name)
 
+    # Run the deployment
     if not dry_run:
-
-        # Register the task definitions in ECS
-        register_task_definitions(connection, task_definitions)
-
-        # Run tasks before deploying services
-        tasks_before_deploy = config.get('before_deploy', [])
-        run_tasks(
-            connection, cluster_name, task_definitions, tasks_before_deploy)
-
-        # Check if all services exist
-        existing_services = utils.describe_services(
-            connection.ecs, cluster=cluster_name,
-            services=task_definitions.keys())
-        available_services = {
-            service['serviceName'] for service in existing_services
-        }
-        new_services = set(task_definitions.keys()) - available_services
-
-        # Update services
-        for service_name, service in services.items():
-            task_definition = task_definitions[service['task_definition']]
-            if service_name in new_services:
-                logger.info(
-                    "Creating new service %s with task definition %s",
-                    service_name, task_definition['name'])
-                connection.ecs.create_service(
-                    cluster=cluster_name,
-                    serviceName=service_name,
-                    desiredCount=1,
-                    taskDefinition=task_definition['name'])
-            else:
-                logger.info(
-                    "Updating service %s with task defintion %s",
-                    service_name, task_definition['name'])
-                connection.ecs.update_service(
-                    cluster=cluster_name,
-                    service=service_name,
-                    taskDefinition=task_definition['name'])
-
-        is_finished = wait_for_deployments(
-            connection, cluster_name, services.keys())
-
-        if not is_finished:
+        try:
+            start_deployment(config, connection, task_definitions)
+        except DeploymentFailed:
             sys.exit(1)
 
-        # Run tasks after deploying services
-        tasks_after_deploy = config.get('after_deploy', [])
-        run_tasks(
-            connection, cluster_name, task_definitions, tasks_after_deploy)
+    sys.exit(0)
+
+
+def start_deployment(config, connection, task_definitions):
+    """Start the deployment.
+
+    The following steps are executed:
+
+    1. The task definitions are registered with AWS
+    2. The before_deploy tasks are started
+    3. The services are updated to reference the last task definitions
+    4. The client poll's AWS until all deployments are finished.
+    5. The after_deploy tasks are started.
+
+    """
+    cluster_name = config['cluster_name']
+    services = config['services']
+
+    # Register the task definitions in ECS
+    register_task_definitions(connection, task_definitions)
+
+    # Run tasks before deploying services
+    tasks_before_deploy = config.get('before_deploy', [])
+    run_tasks(
+        connection, cluster_name, task_definitions, tasks_before_deploy)
+
+    # Check if all services exist
+    existing_services = utils.describe_services(
+        connection.ecs, cluster=cluster_name,
+        services=task_definitions.keys())
+    available_services = {
+        service['serviceName'] for service in existing_services
+    }
+    new_services = set(task_definitions.keys()) - available_services
+
+    # Update services
+    for service_name, service in services.items():
+        task_definition = task_definitions[service['task_definition']]
+        if service_name in new_services:
+            logger.info(
+                "Creating new service %s with task definition %s",
+                service_name, task_definition['name'])
+            connection.ecs.create_service(
+                cluster=cluster_name,
+                serviceName=service_name,
+                desiredCount=1,
+                taskDefinition=task_definition['name'])
+        else:
+            logger.info(
+                "Updating service %s with task defintion %s",
+                service_name, task_definition['name'])
+            connection.ecs.update_service(
+                cluster=cluster_name,
+                service=service_name,
+                taskDefinition=task_definition['name'])
+
+    is_finished = wait_for_deployments(
+        connection, cluster_name, services.keys())
+
+    if not is_finished:
+        raise DeploymentFailed("Timeout")
+
+    # Run tasks after deploying services
+    tasks_after_deploy = config.get('after_deploy', [])
+    run_tasks(
+        connection, cluster_name, task_definitions, tasks_after_deploy)
 
 
 def wait_for_deployments(connection, cluster_name, service_names):
@@ -211,7 +233,6 @@ def run_tasks(connection, cluster_name, task_definitions, tasks):
             else:
                 sys.exit(1)
         num += 1
-
 
 
 def register_task_definitions(connection, task_definitions):
