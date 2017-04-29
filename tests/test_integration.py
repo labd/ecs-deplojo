@@ -89,7 +89,7 @@ def test_new_service(tmpdir, cluster, monkeypatch, caplog):
     filename.write(data)
 
     runner = CliRunner()
-    result = runner.invoke(main.main, [
+    result = runner.invoke(main.cli, [
         '--config=%s' % filename.strpath,
         '--var=image=my-docker-image:1.0'
     ])
