@@ -44,7 +44,7 @@ class Connection(object):
 @click.option('--var', multiple=True, type=VarType())
 @click.option('--dry-run', is_flag=True, default=False)
 @click.option('--output-path', required=False, type=click.Path())
-def main(config, var, output_path, dry_run):
+def cli(config, var, output_path, dry_run):
     base_path = os.path.dirname(config.name)
     config = yaml.load(config)
     template_vars = dict(var)
