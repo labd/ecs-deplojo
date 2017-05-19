@@ -38,6 +38,7 @@ class Connection(object):
     def __init__(self, role_arn):
         credentials = {}
         if role_arn:
+            sts = boto3.client('sts')
             resp = sts.assume_role(
                 RoleArn=role_arn,
                 RoleSessionName='ecs-deplojo')
