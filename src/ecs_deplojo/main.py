@@ -35,8 +35,18 @@ class VarType(click.ParamType):
 
 
 class Connection(object):
-    def __init__(self):
-        self.ecs = boto3.client('ecs')
+    def __init__(self, role_arn):
+        credentials = {}
+        if role_arn:
+            resp = sts.assume_role(
+                RoleArn=role_arn,
+                RoleSessionName='ecs-deplojo')
+            credentials.update({
+                'aws_secret_access_key': resp['Credentials']['SecretAccessKey'],
+                'aws_access_key_id': resp['Credentials']['AccessKeyId'],
+                'aws_session_token': resp['Credentials']['SessionToken']
+            })
+        self.ecs = boto3.client('ecs', **credentials)
 
 
 @click.command()
@@ -44,12 +54,13 @@ class Connection(object):
 @click.option('--var', multiple=True, type=VarType())
 @click.option('--dry-run', is_flag=True, default=False)
 @click.option('--output-path', required=False, type=click.Path())
-def cli(config, var, output_path, dry_run):
+@click.option('--role-arn', required=False, type=str)
+def cli(config, var, output_path, dry_run, role_arn=None):
     base_path = os.path.dirname(config.name)
     config = yaml.load(config)
     template_vars = dict(var)
 
-    connection = Connection()
+    connection = Connection(role_arn)
     cluster_name = config['cluster_name']
     services = config['services']
     logger.info(
