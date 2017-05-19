@@ -40,6 +40,7 @@ Usage
       --var VAR
       --dry-run
       --output-path PATH
+      --role-arn <optional arn>
       --help              Show this message and exit.
 
 
