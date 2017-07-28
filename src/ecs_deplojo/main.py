@@ -136,7 +136,7 @@ def start_deployment(config, connection, task_definitions):
                 taskDefinition=task_definition['name'])
         else:
             logger.info(
-                "Updating service %s with task defintion %s",
+                "Updating service %s with task definition %s",
                 service_name, task_definition['name'])
             connection.ecs.update_service(
                 cluster=cluster_name,
