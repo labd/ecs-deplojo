@@ -44,7 +44,7 @@ def cluster():
 def definition():
     path = os.path.join(BASE_DIR, 'files/default_taskdef.json')
 
-    with open(path, 'rb') as json_file:
+    with open(path, 'r') as json_file:
         return json.load(json_file)
 
 
@@ -52,5 +52,5 @@ def definition():
 def default_config():
     path = os.path.join(BASE_DIR, 'files/default_config.yml')
 
-    with open(path, 'rb') as fh:
+    with open(path, 'r') as fh:
         yield fh

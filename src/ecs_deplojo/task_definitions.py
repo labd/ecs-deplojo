@@ -51,7 +51,7 @@ def generate_task_definition(filename, environment, template_vars, overrides,
     if base_path:
         filename = os.path.join(base_path, filename)
 
-    with open(filename, 'rb') as fh:
+    with open(filename, 'r') as fh:
         data = json.load(fh)
 
         data['family'] = name
