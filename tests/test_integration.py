@@ -59,6 +59,7 @@ def test_new_service(tmpdir, cluster, monkeypatch, caplog):
       web:
         template: %(template_filename)s
         environment_group: group-1
+        task_role_arn: my-test
         overrides:
           web-1:
             memory: 512

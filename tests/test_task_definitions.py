@@ -141,7 +141,7 @@ def test_generate_task_definition_overrides(tmpdir):
     assert result == expected
 
 
-def test_generate_task_definitions(tmpdir):
+def test_generate_multiple_task_definitions(tmpdir):
     task_data = """
     {
       "family": "default",
@@ -378,3 +378,66 @@ def test_generate_task_definitions_write_output(tmpdir):
         output_path=tmpdir.join('output').mkdir().strpath)
 
     assert tmpdir.join('output').join('task-def-1.json').exists()
+
+
+def test_generate_task_definition_with_task_role_arn(tmpdir):
+    task_data = """
+    {
+      "family": "default",
+      "volumes": [],
+      "containerDefinitions": [
+        {
+          "name": "default",
+          "image": "${image}",
+          "essential": true,
+          "command": ["hello", "world"],
+          "memory": 256,
+          "cpu": 0,
+          "portMappings": [
+            {
+              "containerPort": 8080,
+              "hostPort": 0
+            }
+          ]
+        }
+      ]
+    }
+    """.strip()
+
+    filename = tmpdir.join('task_definition.json')
+    filename.write(task_data)
+
+    result = task_definitions.generate_task_definition(
+        filename.strpath,
+        environment={},
+        task_role_arn="arn:my-task-role",
+        template_vars={
+            'image': 'my-docker-image:1.0',
+        },
+        overrides={},
+        name='my-task-def',
+    )
+
+    expected = {
+        'family': 'my-task-def',
+        'taskRoleArn': 'arn:my-task-role',
+        'volumes': [],
+        'containerDefinitions': [
+            {
+                'name': 'default',
+                'image': 'my-docker-image:1.0',
+                'essential': True,
+                'command': ['hello', 'world'],
+                'memory': 256,
+                'cpu': 0,
+                'portMappings': [
+                    {
+                        'containerPort': 8080,
+                        'hostPort': 0
+                    }
+                ],
+                'environment': {}
+            }
+        ]
+    }
+    assert result == expected

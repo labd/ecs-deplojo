@@ -34,7 +34,8 @@ def generate_task_definitions(config, template_vars, base_path,
             template_vars,
             overrides,
             name=name,
-            base_path=base_path)
+            base_path=base_path,
+            task_role_arn=info.get('task_role_arn'))
 
         if output_path:
             write_task_definition(name, definition, output_path)
@@ -45,7 +46,7 @@ def generate_task_definitions(config, template_vars, base_path,
 
 
 def generate_task_definition(filename, environment, template_vars, overrides,
-                             name, base_path=None):
+                             name, base_path=None, task_role_arn=None):
 
     """Generate the task definitions"""
     if base_path:
@@ -55,6 +56,8 @@ def generate_task_definition(filename, environment, template_vars, overrides,
         data = json.load(fh)
 
         data['family'] = name
+        if task_role_arn:
+            data['taskRoleArn'] = task_role_arn
         for container in data['containerDefinitions']:
             container['image'] = Template(container['image']).substitute(template_vars)
             container['environment'] = environment
