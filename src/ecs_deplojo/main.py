@@ -154,6 +154,9 @@ def start_deployment(config, connection, task_definitions):
     run_tasks(
         connection, cluster_name, task_definitions, tasks_after_deploy)
 
+    # Deregister task definitions
+    deregister_task_definitions(connection, task_definitions)
+
 
 def wait_for_deployments(connection, cluster_name, service_names):
     """Poll ECS until all deployments are finished (status = PRIMARY)
@@ -261,8 +264,33 @@ def register_task_definitions(connection, task_definitions):
         values['name'] = '%s:%s' % (
             result['taskDefinition']['family'],
             result['taskDefinition']['revision'])
+        values['arn'] = result['taskDefinition']['taskDefinitionArn']
         logger.info(
             "Registered new task definition %s", values['name'])
+
+
+def deregister_task_definitions(connection, task_definitions):
+    """Deregister all task definitions not used currently"""
+
+    def yield_arns(family):
+        for page in paginator.paginate(familyPrefix=family):
+            for arn in page['taskDefinitionArns']:
+                yield arn
+
+    logger.info("Deregistering old task definitions")
+    for service_name, values in task_definitions.items():
+        logger.info(" - %s", values['family'])
+
+        paginator = connection.ecs.get_paginator('list_task_definitions')
+        num = 0
+
+        for arn in yield_arns(values['family']):
+            num += 1
+            if arn != values['arn']:
+                connection.ecs.deregister_task_definition(taskDefinition=arn)
+
+            if num > 10:
+                break
 
 
 def transform_definition(definition):

@@ -104,6 +104,8 @@ def test_new_service(tmpdir, cluster, monkeypatch, caplog):
         "Waiting for deployments",
         "Deployment finished: web (1/1)",
         "Starting one-off task 'manage.py clearsessions' via web:1 (web-1)",
+        "Deregistering old task definitions",
+        " - web"
     ]
     lines = [r.message for r in caplog.records() if r.name.startswith('deploy')]
     assert lines == expected
