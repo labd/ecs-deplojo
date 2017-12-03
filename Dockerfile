@@ -1,6 +1,6 @@
-FROM python:3.6.3
+FROM python:3.6.3-alpine
 
-RUN useradd --system --user-group app
+RUN adduser -S app app
 
 RUN mkdir /code/
 COPY . /code/
@@ -10,5 +10,4 @@ RUN pip install .
 
 USER app
 WORKDIR /workspace/
-ENTRYPOINT ecs-deplojo
-
+ENTRYPOINT ["ecs-deplojo"]
