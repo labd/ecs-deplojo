@@ -50,6 +50,7 @@ def test_generate_task_definition(tmpdir):
                 'image': 'my-docker-image:1.0',
                 'essential': True,
                 'command': ['hello', 'world'],
+                'hostname': 'my-task-def',
                 'memory': 256,
                 'cpu': 0,
                 'portMappings': [
@@ -121,6 +122,7 @@ def test_generate_task_definition_overrides(tmpdir):
                 'image': 'my-docker-image:1.0',
                 'essential': True,
                 'command': ['hello', 'world'],
+                'hostname': 'my-task-def',
                 'memory': 512,
                 'memoryReservation': 128,
                 'cpu': 0,
@@ -234,6 +236,7 @@ def test_generate_multiple_task_definitions(tmpdir):
                         'image': 'my-docker-image:1.0',
                         'essential': True,
                         'command': ['hello', 'world'],
+                        'hostname': 'task-def-1-web-1',
                         'memory': 512,
                         'cpu': 0,
                         'portMappings': [
@@ -252,6 +255,7 @@ def test_generate_multiple_task_definitions(tmpdir):
                         'image': 'my-docker-image:1.0',
                         'essential': True,
                         'command': ['hello', 'world'],
+                        'hostname': 'task-def-1-web-2',
                         'memory': 256,
                         'cpu': 0,
                         'portMappings': [
@@ -277,6 +281,7 @@ def test_generate_multiple_task_definitions(tmpdir):
                         'name': 'web-1',
                         'image': 'my-docker-image:1.0',
                         'essential': True,
+                        'hostname': 'task-def-2-web-1',
                         'command': ['hello', 'world'],
                         'memory': 512,
                         'cpu': 0,
@@ -294,6 +299,7 @@ def test_generate_multiple_task_definitions(tmpdir):
                     {
                         'name': 'web-2',
                         'image': 'my-docker-image:1.0',
+                        'hostname': 'task-def-2-web-2',
                         'essential': True,
                         'command': ['hello', 'world'],
                         'memory': 256,
@@ -427,6 +433,7 @@ def test_generate_task_definition_with_task_role_arn(tmpdir):
                 'name': 'default',
                 'image': 'my-docker-image:1.0',
                 'essential': True,
+                'hostname': 'my-task-def',
                 'command': ['hello', 'world'],
                 'memory': 256,
                 'cpu': 0,

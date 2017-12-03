@@ -58,9 +58,16 @@ def generate_task_definition(filename, environment, template_vars, overrides,
         data['family'] = name
         if task_role_arn:
             data['taskRoleArn'] = task_role_arn
+
+        num_containers = len(data['containerDefinitions'])
         for container in data['containerDefinitions']:
             container['image'] = Template(container['image']).substitute(template_vars)
             container['environment'] = environment
+
+            hostname = name
+            if num_containers > 1:
+                hostname += '-%s' % container['name'].replace('_', '-')
+            container.setdefault('hostname', hostname)
 
             if overrides:
                 container_overrides = overrides.get(container['name'], {})
