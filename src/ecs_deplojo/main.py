@@ -206,12 +206,6 @@ def wait_for_deployments(connection, cluster_name, service_names):
                 message['createdAt'].strftime('%H:%M:%S'), message['message'])
             last_message = datetime.datetime.now()
 
-        # So we haven't printed something for a while, let's give some feedback
-        if last_message < datetime.datetime.now() - datetime.timedelta(seconds=10):
-            logger.info(
-                "Still waiting for: %s",
-                ', '.join([s['serviceName'] for s in in_progress]))
-
         # 5 Seconds after the deployment is no longer in progress we mark it
         # as done.
         offset = datetime.datetime.utcnow() - datetime.timedelta(seconds=5)
@@ -225,6 +219,12 @@ def wait_for_deployments(connection, cluster_name, service_names):
         # more seconds before ending the operation successfully.
         if not in_progress:
             ready_timestamp = datetime.datetime.utcnow()
+
+        # So we haven't printed something for a while, let's give some feedback
+        elif last_message < datetime.datetime.now() - datetime.timedelta(seconds=10):
+            logger.info(
+                "Still waiting for: %s",
+                ', '.join([s['serviceName'] for s in in_progress]))
 
         time.sleep(5)
         if time.time() - start_time > (60 * 15):
