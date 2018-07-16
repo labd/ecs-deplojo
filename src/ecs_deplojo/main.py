@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import datetime
 import copy
 import operator
 import os.path
@@ -9,6 +10,7 @@ import tokenize
 
 import boto3
 import click
+import pytz
 import yaml
 
 from ecs_deplojo import utils
@@ -16,7 +18,7 @@ from ecs_deplojo.exceptions import DeploymentFailed
 from ecs_deplojo.logger import logger
 from ecs_deplojo.task_definitions import generate_task_definitions
 
-POLL_TIME = 5
+POLL_TIME = 2
 
 
 class VarType(click.ParamType):
@@ -180,27 +182,72 @@ def wait_for_deployments(connection, cluster_name, service_names):
         return name
 
     # Wait till all service updates are deployed
-    time.sleep(POLL_TIME)
+    time.sleep(5)
+
+    utc_timestamp = (
+        datetime.datetime.utcnow().replace(tzinfo=pytz.utc) -
+        datetime.timedelta(seconds=5))
+    last_event_timestamps = {name: utc_timestamp for name in service_names}
+    logged_message_ids = set()
+    ready_timestamp = None
+    last_message = datetime.datetime.now()
+
     while True:
         services = utils.describe_services(
             connection.ecs, cluster=cluster_name, services=service_names)
 
         in_progress = [s for s in services if len(s['deployments']) > 1]
-        if in_progress:
+
+        messages = extract_new_event_messages(
+            services, last_event_timestamps, logged_message_ids)
+        for message in messages:
             logger.info(
-                "Waiting for services: %s",
-                ', '.join([service_description(s) for s in in_progress]))
-        else:
+                "%s - %s",
+                message['createdAt'].strftime('%H:%M:%S'), message['message'])
+            last_message = datetime.datetime.now()
+
+        # So we haven't printed something for a while, let's give some feedback
+        if last_message < datetime.datetime.now() - datetime.timedelta(seconds=10):
+            logger.info(
+                "Still waiting for: %s",
+                ', '.join([s['serviceName'] for s in in_progress]))
+
+        # 5 Seconds after the deployment is no longer in progress we mark it
+        # as done.
+        offset = datetime.datetime.utcnow() - datetime.timedelta(seconds=5)
+        if ready_timestamp and offset > ready_timestamp:
             logger.info(
                 "Deployment finished: %s",
                 ', '.join([service_description(s) for s in services]))
             break
+
+        # Set is_ready after the previous check so that we can wait for x
+        # more seconds before ending the operation successfully.
+        if not in_progress:
+            ready_timestamp = datetime.datetime.utcnow()
 
         time.sleep(5)
         if time.time() - start_time > (60 * 15):
             logger.error("Giving up after 15 minutes")
             return False
     return True
+
+
+def extract_new_event_messages(services, last_timestamps, logged_message_ids):
+    for service in services:
+        events = []
+        for event in service['events']:
+            if event['createdAt'] > last_timestamps[service['serviceName']]:
+                events.append(event)
+
+        for event in reversed(events):
+            if event['id'] not in logged_message_ids:
+                yield event
+                logged_message_ids.add(event['id'])
+
+        # Keep track of the timestamp of the last event
+        if events:
+            last_timestamps[service['serviceName']] = events[-1]['createdAt']
 
 
 def run_tasks(connection, cluster_name, task_definitions, tasks):

@@ -7,6 +7,7 @@ install_requires = [
     'boto3==1.4.4',
     'click==6.7',
     'pyaml==16.12.2',
+    'pytz',
 ]
 
 tests_requires = [
