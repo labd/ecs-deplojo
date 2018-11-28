@@ -25,7 +25,7 @@ with open('README.rst') as fh:
 
 setup(
     name='ecs-deplojo',
-    version='0.7.0',
+    version='0.7.1',
     author='Lab Digital B.V.',
     author_email='opensource@labdigital.nl',
     url='https://www.github.com/labd/ecs-deplojo/',

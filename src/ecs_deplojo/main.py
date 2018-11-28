@@ -9,6 +9,7 @@ import time
 import tokenize
 
 import boto3
+from botocore.exceptions import WaiterError
 import click
 import pytz
 import yaml
@@ -165,72 +166,26 @@ def wait_for_deployments(connection, cluster_name, service_names):
 
     """
     logger.info("Waiting for deployments")
-    start_time = time.time()
 
-    def service_description(service):
-        """Return string in format of 'name (0/2)'"""
-        name = service['serviceName']
-        for deployment in service['deployments']:
-            if deployment.get('status') != 'PRIMARY':
-                continue
+    waiter = connection.ecs.get_waiter("services_stable")
 
-            desired = deployment['desiredCount']
-            pending = deployment['pendingCount']
-            running = deployment['runningCount']
+    try:
+        waiter.wait(
+            cluster = cluster_name,
+            services = service_names,
+            WaiterConfig={
+                'Delay': 5,
+                'MaxAttempts': 50
+            })
 
-            return '%s (%s/%s)' % (name, pending + running, desired)
-        return name
+        logger.info("Deployment finished: %s",
+                ', '.join(service_names))
 
-    # Wait till all service updates are deployed
-    time.sleep(5)
+        return True
+    except WaiterError:
+        logger.error("Giving up after 15 minutes")
 
-    utc_timestamp = (
-        datetime.datetime.utcnow().replace(tzinfo=pytz.utc) -
-        datetime.timedelta(seconds=5))
-    last_event_timestamps = {name: utc_timestamp for name in service_names}
-    logged_message_ids = set()
-    ready_timestamp = None
-    last_message = datetime.datetime.now()
-
-    while True:
-        services = utils.describe_services(
-            connection.ecs, cluster=cluster_name, services=service_names)
-
-        in_progress = [s for s in services if len(s['deployments']) > 1]
-
-        messages = extract_new_event_messages(
-            services, last_event_timestamps, logged_message_ids)
-        for message in messages:
-            logger.info(
-                "%s - %s",
-                message['createdAt'].strftime('%H:%M:%S'), message['message'])
-            last_message = datetime.datetime.now()
-
-        # 5 Seconds after the deployment is no longer in progress we mark it
-        # as done.
-        offset = datetime.datetime.utcnow() - datetime.timedelta(seconds=5)
-        if ready_timestamp and offset > ready_timestamp:
-            logger.info(
-                "Deployment finished: %s",
-                ', '.join([service_description(s) for s in services]))
-            break
-
-        # Set is_ready after the previous check so that we can wait for x
-        # more seconds before ending the operation successfully.
-        if not in_progress:
-            ready_timestamp = datetime.datetime.utcnow()
-
-        # So we haven't printed something for a while, let's give some feedback
-        elif last_message < datetime.datetime.now() - datetime.timedelta(seconds=10):
-            logger.info(
-                "Still waiting for: %s",
-                ', '.join([s['serviceName'] for s in in_progress]))
-
-        time.sleep(5)
-        if time.time() - start_time > (60 * 15):
-            logger.error("Giving up after 15 minutes")
-            return False
-    return True
+        return False
 
 
 def extract_new_event_messages(services, last_timestamps, logged_message_ids):
