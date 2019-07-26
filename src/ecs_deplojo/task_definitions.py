@@ -3,8 +3,7 @@ import os.path
 from string import Template
 
 
-def generate_task_definitions(config, template_vars, base_path,
-                              output_path=None):
+def generate_task_definitions(config, template_vars, base_path, output_path=None):
     """Generate the task definitions
 
     :parameter config: The yaml config contents
@@ -16,61 +15,67 @@ def generate_task_definitions(config, template_vars, base_path,
     """
     task_definitions = {}
 
-    for name, info in config['task_definitions'].items():
+    for name, info in config["task_definitions"].items():
         # Default environment. Always create a new dict instance since it is
         # mutated.
         env_items = {}
-        env_items.update(config.get('environment', {}))
+        env_items.update(config.get("environment", {}))
 
         # Environment groups
-        env_group = info.get('environment_group')
+        env_group = info.get("environment_group")
         if env_group:
-            env_items.update(config['environment_groups'][env_group])
+            env_items.update(config["environment_groups"][env_group])
 
-        overrides = info.get('overrides', {})
+        overrides = info.get("overrides", {})
         definition = generate_task_definition(
-            info['template'],
+            info["template"],
             env_items,
             template_vars,
             overrides,
             name=name,
             base_path=base_path,
-            task_role_arn=info.get('task_role_arn'))
+            task_role_arn=info.get("task_role_arn"),
+        )
 
         if output_path:
             write_task_definition(name, definition, output_path)
-        task_definitions[name] = {
-            'definition': definition,
-        }
+        task_definitions[name] = {"definition": definition}
     return task_definitions
 
 
-def generate_task_definition(filename, environment, template_vars, overrides,
-                             name, base_path=None, task_role_arn=None):
+def generate_task_definition(
+    filename,
+    environment,
+    template_vars,
+    overrides,
+    name,
+    base_path=None,
+    task_role_arn=None,
+):
 
     """Generate the task definitions"""
     if base_path:
         filename = os.path.join(base_path, filename)
 
-    with open(filename, 'r') as fh:
+    with open(filename, "r") as fh:
         data = json.load(fh)
 
-        data['family'] = name
+        data["family"] = name
         if task_role_arn:
-            data['taskRoleArn'] = task_role_arn
+            data["taskRoleArn"] = task_role_arn
 
-        num_containers = len(data['containerDefinitions'])
-        for container in data['containerDefinitions']:
-            container['image'] = Template(container['image']).substitute(template_vars)
-            container['environment'] = environment
+        num_containers = len(data["containerDefinitions"])
+        for container in data["containerDefinitions"]:
+            container["image"] = Template(container["image"]).substitute(template_vars)
+            container["environment"] = environment
 
             hostname = name
             if num_containers > 1:
-                hostname += '-%s' % container['name'].replace('_', '-')
-            container.setdefault('hostname', hostname)
+                hostname += "-%s" % container["name"].replace("_", "-")
+            container.setdefault("hostname", hostname)
 
             if overrides:
-                container_overrides = overrides.get(container['name'], {})
+                container_overrides = overrides.get(container["name"], {})
                 for key, value in container_overrides.items():
                     if key in container and isinstance(container[key], list):
                         container[key].extend(value)
@@ -78,17 +83,12 @@ def generate_task_definition(filename, environment, template_vars, overrides,
                         container[key].update(value)
                     else:
                         container[key] = value
-        data["tags"] = [
-            {
-                "key": "createdBy",
-                "value": "ecs-deplojo"
-            }
-        ]
+        data["tags"] = [{"key": "createdBy", "value": "ecs-deplojo"}]
 
         return data
 
 
 def write_task_definition(name, definition, output_path):
-    filename = os.path.join(output_path, '%s.json' % name)
-    with open(filename, 'w') as fh:
+    filename = os.path.join(output_path, "%s.json" % name)
+    with open(filename, "w") as fh:
         json.dump(definition, fh, indent=4)

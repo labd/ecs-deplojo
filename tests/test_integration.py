@@ -5,7 +5,7 @@ from tests.utils import deindent_text
 
 
 def test_new_service(tmpdir, cluster, monkeypatch, caplog):
-    monkeypatch.setattr(main, 'POLL_TIME', 0.001)
+    monkeypatch.setattr(main, "POLL_TIME", 0.001)
 
     data = """
     {
@@ -44,10 +44,11 @@ def test_new_service(tmpdir, cluster, monkeypatch, caplog):
     }
     """.strip()
 
-    filename = tmpdir.join('task_definition.json')
+    filename = tmpdir.join("task_definition.json")
     filename.write(data)
 
-    data = deindent_text("""
+    data = deindent_text(
+        """
     ---
     cluster_name: default
     environment:
@@ -82,18 +83,17 @@ def test_new_service(tmpdir, cluster, monkeypatch, caplog):
         command: manage.py clearsessions
 
 
-    """ % {
-        'template_filename': filename.strpath
-    })
+    """
+        % {"template_filename": filename.strpath}
+    )
 
-    filename = tmpdir.join('config.yml')
+    filename = tmpdir.join("config.yml")
     filename.write(data)
 
     runner = CliRunner()
-    result = runner.invoke(main.cli, [
-        '--config=%s' % filename.strpath,
-        '--var=image=my-docker-image:1.0'
-    ])
+    result = runner.invoke(
+        main.cli, ["--config=%s" % filename.strpath, "--var=image=my-docker-image:1.0"]
+    )
     assert result.exit_code == 0, result.output
 
     expected = [
@@ -105,7 +105,7 @@ def test_new_service(tmpdir, cluster, monkeypatch, caplog):
         "Deployment finished: web (1/1)",
         "Starting one-off task 'manage.py clearsessions' via web:1 (web-1)",
         "Deregistering old task definitions",
-        " - web"
+        " - web",
     ]
-    lines = [r.message for r in caplog.records if r.name.startswith('deploy')]
+    lines = [r.message for r in caplog.records if r.name.startswith("deploy")]
     assert lines == expected

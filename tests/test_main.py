@@ -32,12 +32,12 @@ def test_register_task_definitions(cluster):
     connection = main.Connection()
 
     result = connection.ecs.list_task_definitions()
-    assert len(result['taskDefinitionArns']) == 0
+    assert len(result["taskDefinitionArns"]) == 0
 
     main.register_task_definitions(connection, task_definitions)
 
     result = connection.ecs.list_task_definitions()
-    assert len(result['taskDefinitionArns']) == 1
+    assert len(result["taskDefinitionArns"]) == 1
 
 
 def test_deregister_task_definitions(cluster):
@@ -67,15 +67,15 @@ def test_deregister_task_definitions(cluster):
     connection = main.Connection()
 
     result = connection.ecs.list_task_definitions()
-    assert len(result['taskDefinitionArns']) == 0
+    assert len(result["taskDefinitionArns"]) == 0
 
     for i in range(10):
         task_def = copy.deepcopy(task_definitions)
         main.register_task_definitions(connection, task_def)
 
     result = connection.ecs.list_task_definitions()
-    assert len(result['taskDefinitionArns']) == 10
+    assert len(result["taskDefinitionArns"]) == 10
 
     main.deregister_task_definitions(connection, task_def)
     result = connection.ecs.list_task_definitions()
-    assert len(result['taskDefinitionArns']) == 1
+    assert len(result["taskDefinitionArns"]) == 1

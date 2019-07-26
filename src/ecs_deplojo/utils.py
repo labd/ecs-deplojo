@@ -17,7 +17,6 @@ def describe_services(ecs, cluster, services):
     result = []
     for services_slice in slice_iterable(services, 10):
 
-        response = ecs.describe_services(
-            cluster=cluster, services=services_slice)
-        result.extend(response['services'])
+        response = ecs.describe_services(cluster=cluster, services=services_slice)
+        result.extend(response["services"])
     return result
