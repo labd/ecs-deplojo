@@ -78,6 +78,12 @@ def generate_task_definition(filename, environment, template_vars, overrides,
                         container[key].update(value)
                     else:
                         container[key] = value
+        data["tags"] = [
+            {
+                "key": "createdBy",
+                "value": "ecs-deplojo"
+            }
+        ]
 
         return data
 

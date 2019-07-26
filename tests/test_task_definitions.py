@@ -61,6 +61,12 @@ def test_generate_task_definition(tmpdir):
                 ],
                 'environment': {}
             }
+        ],
+        'tags': [
+            {
+                'key': 'createdBy',
+                'value': 'ecs-deplojo',
+            }
         ]
     }
     assert result == expected
@@ -137,6 +143,12 @@ def test_generate_task_definition_overrides(tmpdir):
                     }
                 ],
                 'environment': {}
+            }
+        ],
+        'tags': [
+            {
+                'key': 'createdBy',
+                'value': 'ecs-deplojo',
             }
         ]
     }
@@ -269,6 +281,12 @@ def test_generate_multiple_task_definitions(tmpdir):
                             'ENV_CODE': 'group-1',
                         }
                     }
+                ],
+                'tags': [
+                    {
+                        'key': 'createdBy',
+                        'value': 'ecs-deplojo',
+                    }
                 ]
             },
         },
@@ -314,6 +332,12 @@ def test_generate_multiple_task_definitions(tmpdir):
                             'DATABASE_URL': 'postgresql://',
                             'ENV_CODE': 'group-2',
                         }
+                    }
+                ],
+                'tags': [
+                    {
+                        'key': 'createdBy',
+                        'value': 'ecs-deplojo',
                     }
                 ]
             }
@@ -444,6 +468,12 @@ def test_generate_task_definition_with_task_role_arn(tmpdir):
                     }
                 ],
                 'environment': {}
+            }
+        ],
+        'tags': [
+            {
+                'key': 'createdBy',
+                'value': 'ecs-deplojo',
             }
         ]
     }
