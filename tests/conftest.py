@@ -4,6 +4,7 @@ import os
 import boto3
 import pytest
 import moto
+from moto.ec2 import ec2_backend
 from moto.ec2 import utils as ec2_utils
 
 
@@ -20,8 +21,10 @@ def cluster():
     ec2 = boto3.resource('ec2', region_name='eu-west-1')
     ecs = boto3.client('ecs', region_name='eu-west-1')
 
+    known_amis = list(ec2_backend.describe_images())
+
     test_instance = ec2.create_instances(
-        ImageId="ami-1234abcd",
+        ImageId=known_amis[0].id,
         MinCount=1,
         MaxCount=1,
     )[0]

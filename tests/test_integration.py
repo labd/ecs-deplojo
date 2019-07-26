@@ -107,5 +107,5 @@ def test_new_service(tmpdir, cluster, monkeypatch, caplog):
         "Deregistering old task definitions",
         " - web"
     ]
-    lines = [r.message for r in caplog.records() if r.name.startswith('deploy')]
+    lines = [r.message for r in caplog.records if r.name.startswith('deploy')]
     assert lines == expected
