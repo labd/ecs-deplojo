@@ -60,7 +60,7 @@ class Connection(object):
 @click.option('--role-arn', required=False, type=str)
 def cli(config, var, output_path, dry_run, role_arn=None):
     base_path = os.path.dirname(config.name)
-    config = yaml.load(config)
+    config = yaml.safe_load(config)
     template_vars = dict(var)
 
     connection = Connection(role_arn)
