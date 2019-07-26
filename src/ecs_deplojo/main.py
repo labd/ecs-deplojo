@@ -37,7 +37,7 @@ class VarType(click.ParamType):
 
 
 class Connection(object):
-    def __init__(self, role_arn):
+    def __init__(self, role_arn=None):
         credentials = {}
         if role_arn:
             sts = boto3.client('sts')
@@ -320,6 +320,7 @@ def deregister_task_definitions(connection, task_definitions):
     """Deregister all task definitions not used currently"""
 
     def yield_arns(family):
+        paginator = connection.ecs.get_paginator('list_task_definitions')
         for page in paginator.paginate(familyPrefix=family):
             for arn in page['taskDefinitionArns']:
                 yield arn
@@ -328,7 +329,6 @@ def deregister_task_definitions(connection, task_definitions):
     for service_name, values in task_definitions.items():
         logger.info(" - %s", values['family'])
 
-        paginator = connection.ecs.get_paginator('list_task_definitions')
         num = 0
 
         for arn in yield_arns(values['family']):
