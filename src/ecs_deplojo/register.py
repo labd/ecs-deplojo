@@ -1,6 +1,4 @@
-import copy
 import typing
-import operator
 
 from ecs_deplojo.connection import Connection
 from ecs_deplojo.logger import logger
@@ -29,13 +27,18 @@ def register_task_definitions(
 def deregister_task_definitions(
     connection: Connection, task_definitions: typing.Dict[str, TaskDefinition]
 ) -> None:
-    """Deregister all task definitions not used currently"""
+    """Deregister all task definitions not used currently which are created
+    by ecs-deplojo.
 
+    """
     def yield_arns(family) -> typing.Generator[str, None, None]:
         paginator = connection.ecs.get_paginator("list_task_definitions")
         for page in paginator.paginate(familyPrefix=family):
-            for arn in page["taskDefinitionArns"]:
-                yield arn
+            for arn in page['taskDefinitionArns']:
+                info = connection.ecs.list_tags_for_resource(resourceArn=arn)
+                tags = {i['key']: i['value'] for i in info['tags']}
+                if tags.get('createdBy') == 'ecs-deplojo':
+                    yield arn
 
     logger.info("Deregistering old task definitions")
     for service_name, task_definition in task_definitions.items():
