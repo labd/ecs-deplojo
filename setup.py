@@ -40,7 +40,7 @@ setup(
     include_package_data=True,
     entry_points={
         'console_scripts': {
-            'ecs-deplojo = ecs_deplojo.main:cli'
+            'ecs-deplojo = ecs_deplojo.cli:main'
         }
     },
     license='MIT',

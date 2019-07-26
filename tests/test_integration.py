@@ -1,12 +1,10 @@
 from click.testing import CliRunner
 
-from ecs_deplojo import main
+from ecs_deplojo import cli
 from tests.utils import deindent_text
 
 
 def test_new_service(tmpdir, cluster, monkeypatch, caplog):
-    monkeypatch.setattr(main, "POLL_TIME", 0.001)
-
     data = """
     {
       "family": "default",
@@ -92,7 +90,7 @@ def test_new_service(tmpdir, cluster, monkeypatch, caplog):
 
     runner = CliRunner()
     result = runner.invoke(
-        main.cli, ["--config=%s" % filename.strpath, "--var=image=my-docker-image:1.0"]
+        cli.main, ["--config=%s" % filename.strpath, "--var=image=my-docker-image:1.0"]
     )
     assert result.exit_code == 0, result.output
 

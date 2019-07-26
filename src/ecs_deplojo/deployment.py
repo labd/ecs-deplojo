@@ -1,97 +1,15 @@
 #!/usr/bin/env python
-import copy
 import datetime
-import operator
-import os.path
-import re
 import sys
 import time
-import tokenize
 
-import boto3
-import click
 import pytz
-import yaml
 
 from ecs_deplojo import utils
 from ecs_deplojo.exceptions import DeploymentFailed
 from ecs_deplojo.logger import logger
-from ecs_deplojo.task_definitions import generate_task_definitions
-
-POLL_TIME = 2
-
-
-class VarType(click.ParamType):
-    name = "var"
-    re_pattern = re.compile("^%s$" % tokenize.Name)
-
-    def convert(self, value, param, ctx):
-        try:
-            key, value = value.split("=", 1)
-            if not self.re_pattern.match(key):
-                self.fail("%s is not a valid identifier" % key)
-        except ValueError:
-            self.fail("%s is not a valid key/value string" % value, param, ctx)
-
-        return (key, value)
-
-
-class Connection(object):
-    def __init__(self, role_arn=None):
-        credentials = {}
-        if role_arn:
-            sts = boto3.client("sts")
-            resp = sts.assume_role(RoleArn=role_arn, RoleSessionName="ecs-deplojo")
-            credentials.update(
-                {
-                    "aws_secret_access_key": resp["Credentials"]["SecretAccessKey"],
-                    "aws_access_key_id": resp["Credentials"]["AccessKeyId"],
-                    "aws_session_token": resp["Credentials"]["SessionToken"],
-                }
-            )
-        self.ecs = boto3.client("ecs", **credentials)
-
-
-@click.command()
-@click.option("--config", required=True, type=click.File())
-@click.option("--var", multiple=True, type=VarType())
-@click.option("--dry-run", is_flag=True, default=False)
-@click.option("--output-path", required=False, type=click.Path())
-@click.option("--role-arn", required=False, type=str)
-def cli(config, var, output_path, dry_run, role_arn=None):
-    base_path = os.path.dirname(config.name)
-    config = yaml.safe_load(config)
-    template_vars = dict(var)
-
-    connection = Connection(role_arn)
-    cluster_name = config["cluster_name"]
-    services = config["services"]
-    logger.info(
-        "Starting deploy on cluster %s (%s services)", cluster_name, len(services)
-    )
-
-    # Generate the task definitions
-    task_definitions = generate_task_definitions(
-        config, template_vars, base_path, output_path
-    )
-
-    # Check if all task definitions required by the services exists
-    for service_name, service in services.items():
-        if service["task_definition"] not in task_definitions:
-            logger.error(
-                "Missing task definition %r for service %r",
-                service["task_definition"],
-                service_name,
-            )
-
-    # Run the deployment
-    if not dry_run:
-        try:
-            start_deployment(config, connection, task_definitions)
-        except DeploymentFailed:
-            sys.exit(1)
-
-    sys.exit(0)
+from ecs_deplojo.register import (
+    deregister_task_definitions, register_task_definitions)
 
 
 def start_deployment(config, connection, task_definitions):
@@ -303,55 +221,3 @@ def run_tasks(connection, cluster_name, task_definitions, tasks):
             else:
                 sys.exit(1)
         num += 1
-
-
-def register_task_definitions(connection, task_definitions):
-    """Update task definitions"""
-
-    for service_name, values in task_definitions.items():
-        definition = transform_definition(values["definition"])
-        result = connection.ecs.register_task_definition(**definition)
-
-        values["family"] = result["taskDefinition"]["family"]
-        values["revision"] = result["taskDefinition"]["revision"]
-        values["name"] = "%s:%s" % (
-            result["taskDefinition"]["family"],
-            result["taskDefinition"]["revision"],
-        )
-        values["arn"] = result["taskDefinition"]["taskDefinitionArn"]
-        logger.info("Registered new task definition %s", values["name"])
-
-
-def deregister_task_definitions(connection, task_definitions):
-    """Deregister all task definitions not used currently"""
-
-    def yield_arns(family):
-        paginator = connection.ecs.get_paginator("list_task_definitions")
-        for page in paginator.paginate(familyPrefix=family):
-            for arn in page["taskDefinitionArns"]:
-                yield arn
-
-    logger.info("Deregistering old task definitions")
-    for service_name, values in task_definitions.items():
-        logger.info(" - %s", values["family"])
-
-        num = 0
-
-        for arn in yield_arns(values["family"]):
-            num += 1
-            if arn != values["arn"]:
-                connection.ecs.deregister_task_definition(taskDefinition=arn)
-
-            if num > 10:
-                break
-
-
-def transform_definition(definition):
-    result = copy.deepcopy(definition)
-    for container in result["containerDefinitions"]:
-        container["environment"] = sorted(
-            [{"name": k, "value": str(v)} for k, v in container["environment"].items()],
-            key=operator.itemgetter("name"),
-        )
-
-    return result

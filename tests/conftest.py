@@ -8,6 +8,8 @@ import moto
 from moto.ec2 import utils as ec2_utils
 from moto.ec2 import ec2_backend
 
+from ecs_deplojo.connection import Connection
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -36,6 +38,11 @@ def cluster():
         )
 
         yield cluster
+
+
+@pytest.fixture
+def connection(cluster):
+    return Connection()
 
 
 @pytest.fixture
