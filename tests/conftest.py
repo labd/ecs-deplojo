@@ -13,34 +13,31 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 @pytest.yield_fixture(scope="function")
 def cluster():
-    boto3.setup_default_session(region_name='eu-west-1')
 
-    moto.mock_ecs().start()
-    moto.mock_ec2().start()
+    with moto.mock_ecs(), moto.mock_ec2():
+        boto3.setup_default_session(region_name='eu-west-1')
 
-    ec2 = boto3.resource('ec2', region_name='eu-west-1')
-    ecs = boto3.client('ecs', region_name='eu-west-1')
+        ec2 = boto3.resource('ec2', region_name='eu-west-1')
+        ecs = boto3.client('ecs', region_name='eu-west-1')
 
-    known_amis = list(ec2_backend.describe_images())
+        known_amis = list(ec2_backend.describe_images())
 
-    test_instance = ec2.create_instances(
-        ImageId=known_amis[0].id,
-        MinCount=1,
-        MaxCount=1,
-    )[0]
+        test_instance = ec2.create_instances(
+            ImageId=known_amis[0].id,
+            MinCount=1,
+            MaxCount=1,
+        )[0]
 
-    instance_id_document = json.dumps(
-        ec2_utils.generate_instance_identity_document(test_instance))
+        instance_id_document = json.dumps(
+            ec2_utils.generate_instance_identity_document(test_instance))
 
-    cluster = ecs.create_cluster(clusterName='default')
-    ecs.register_container_instance(
-        cluster='default',
-        instanceIdentityDocument=instance_id_document)
+        cluster = ecs.create_cluster(clusterName='default')
+        ecs.register_container_instance(
+            cluster='default',
+            instanceIdentityDocument=instance_id_document)
 
-    yield cluster
+        yield cluster
 
-    moto.mock_ecs().stop()
-    moto.mock_ec2().stop()
 
 
 @pytest.fixture
