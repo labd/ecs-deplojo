@@ -2,14 +2,16 @@
 import datetime
 import sys
 import time
+import typing
 
 import pytz
 
 from ecs_deplojo import utils
+from ecs_deplojo.connection import Connection
 from ecs_deplojo.exceptions import DeploymentFailed
 from ecs_deplojo.logger import logger
-from ecs_deplojo.register import (
-    deregister_task_definitions, register_task_definitions)
+from ecs_deplojo.register import deregister_task_definitions, register_task_definitions
+from ecs_deplojo.task_definitions import TaskDefinition
 
 
 def start_deployment(
@@ -56,24 +58,24 @@ def start_deployment(
             logger.info(
                 "Creating new service %s with task definition %s",
                 service_name,
-                task_definition["name"],
+                task_definition.name,
             )
             connection.ecs.create_service(
                 cluster=cluster_name,
                 serviceName=service_name,
                 desiredCount=1,
-                taskDefinition=task_definition["name"],
+                taskDefinition=task_definition.arn,
             )
         else:
             logger.info(
                 "Updating service %s with task definition %s",
                 service_name,
-                task_definition["name"],
+                task_definition.name,
             )
             connection.ecs.update_service(
                 cluster=cluster_name,
                 service=service_name,
-                taskDefinition=task_definition["name"],
+                taskDefinition=task_definition.arn,
             )
 
     is_finished = wait_for_deployments(connection, cluster_name, services.keys())
@@ -85,14 +87,14 @@ def start_deployment(
     tasks_after_deploy = config.get("after_deploy", [])
     run_tasks(connection, cluster_name, task_definitions, tasks_after_deploy)
 
-    # Deregister task definitions
+    # Deregister old task definitions
     deregister_task_definitions(connection, task_definitions)
 
 
-def wait_for_deployments(connection, cluster_name, service_names):
-    """Poll ECS until all deployments are finished (status = PRIMARY)
-
-    """
+def wait_for_deployments(
+    connection: Connection, cluster_name: str, service_names: typing.List[str]
+) -> bool:
+    """Poll ECS until all deployments are finished (status = PRIMARY)"""
     logger.info("Waiting for deployments")
     start_time = time.time()
 
@@ -117,7 +119,7 @@ def wait_for_deployments(connection, cluster_name, service_names):
         tzinfo=pytz.utc
     ) - datetime.timedelta(seconds=5)
     last_event_timestamps = {name: utc_timestamp for name in service_names}
-    logged_message_ids = set()
+    logged_message_ids: typing.Set[str] = set()
     ready_timestamp = None
     last_message = datetime.datetime.now()
 
@@ -166,7 +168,9 @@ def wait_for_deployments(connection, cluster_name, service_names):
     return True
 
 
-def extract_new_event_messages(services, last_timestamps, logged_message_ids):
+def extract_new_event_messages(
+    services, last_timestamps, logged_message_ids
+) -> typing.Generator[typing.Dict[str, typing.Any], None, None]:
     for service in services:
         events = []
         for event in service["events"]:
@@ -183,7 +187,7 @@ def extract_new_event_messages(services, last_timestamps, logged_message_ids):
             last_timestamps[service["serviceName"]] = events[-1]["createdAt"]
 
 
-def run_tasks(connection, cluster_name, task_definitions, tasks):
+def run_tasks(connection, cluster_name, task_definitions, tasks) -> None:
     """Run one-off tasks.
 
 
@@ -204,13 +208,13 @@ def run_tasks(connection, cluster_name, task_definitions, tasks):
         logger.info(
             "Starting one-off task '%s' via %s (%s)",
             task["command"],
-            task_def["name"],
+            task_def.name,
             task["container"],
         )
 
         response = connection.ecs.run_task(
             cluster=cluster_name,
-            taskDefinition=task_def["name"],
+            taskDefinition=task_def.name,
             overrides={
                 "containerOverrides": [
                     {"name": task["container"], "command": task["command"].split()}

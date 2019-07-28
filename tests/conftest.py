@@ -9,6 +9,7 @@ from moto.ec2 import utils as ec2_utils
 from moto.ec2 import ec2_backend
 
 from ecs_deplojo.connection import Connection
+from ecs_deplojo.task_definitions import TaskDefinition
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -50,7 +51,7 @@ def definition():
     path = os.path.join(BASE_DIR, "files/default_taskdef.json")
 
     with open(path, "r") as json_file:
-        return json.load(json_file)
+        return TaskDefinition(json.load(json_file))
 
 
 @pytest.fixture

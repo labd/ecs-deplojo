@@ -2,16 +2,17 @@ import copy
 import os
 
 from ecs_deplojo import register
+from ecs_deplojo.task_definitions import TaskDefinition
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 def test_transform_definition(definition):
-    definition["containerDefinitions"][0]["environment"] = {
+    definition.container_definitions[0]["environment"] = {
         "DEBUG": True,
         "AWS_REGION": "eu-west-1",
     }
-    result = register._transform_definition(definition)
+    result = definition.as_dict()
 
     assert result["containerDefinitions"][0]["environment"] == [
         {"name": "AWS_REGION", "value": "eu-west-1"},
@@ -21,8 +22,8 @@ def test_transform_definition(definition):
 
 def test_register_task_definitions(cluster, connection):
     task_definitions = {
-        "service-1": {
-            "definition": {
+        "service-1": TaskDefinition(
+            {
                 "family": "my-task-def",
                 "volumes": [],
                 "containerDefinitions": [
@@ -40,7 +41,7 @@ def test_register_task_definitions(cluster, connection):
                 ],
                 "tags": [{"key": "createdBy", "value": "ecs-deplojo"}],
             }
-        }
+        )
     }
 
     result = connection.ecs.list_task_definitions()
@@ -54,8 +55,8 @@ def test_register_task_definitions(cluster, connection):
 
 def test_deregister_task_definitions(cluster, connection):
     task_definitions = {
-        "service-1": {
-            "definition": {
+        "service-1": TaskDefinition(
+            {
                 "family": "my-task-def",
                 "volumes": [],
                 "containerDefinitions": [
@@ -73,7 +74,7 @@ def test_deregister_task_definitions(cluster, connection):
                 ],
                 "tags": [{"key": "createdBy", "value": "ecs-deplojo"}],
             }
-        }
+        )
     }
 
     result = connection.ecs.list_task_definitions()

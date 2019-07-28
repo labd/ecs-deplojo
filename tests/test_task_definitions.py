@@ -32,32 +32,34 @@ def test_generate_task_definition(tmpdir):
     filename = tmpdir.join("task_definition.json")
     filename.write(task_data)
 
-    result = task_definitions.generate_task_definition(
+    task_definition = task_definitions.generate_task_definition(
         filename.strpath,
         environment={},
         template_vars={"image": "my-docker-image:1.0"},
         overrides={},
         name="my-task-def",
     )
-    expected = {
-        "family": "my-task-def",
-        "volumes": [],
-        "containerDefinitions": [
-            {
-                "name": "default",
-                "image": "my-docker-image:1.0",
-                "essential": True,
-                "command": ["hello", "world"],
-                "hostname": "my-task-def",
-                "memory": 256,
-                "cpu": 0,
-                "portMappings": [{"containerPort": 8080, "hostPort": 0}],
-                "environment": {},
-            }
-        ],
-        "tags": [{"key": "createdBy", "value": "ecs-deplojo"}],
-    }
-    assert result == expected
+    expected = task_definitions.TaskDefinition(
+        {
+            "family": "my-task-def",
+            "volumes": [],
+            "containerDefinitions": [
+                {
+                    "name": "default",
+                    "image": "my-docker-image:1.0",
+                    "essential": True,
+                    "command": ["hello", "world"],
+                    "hostname": "my-task-def",
+                    "memory": 256,
+                    "cpu": 0,
+                    "portMappings": [{"containerPort": 8080, "hostPort": 0}],
+                    "environment": {},
+                }
+            ],
+            "tags": [{"key": "createdBy", "value": "ecs-deplojo"}],
+        }
+    )
+    assert task_definition == expected
 
 
 def test_generate_task_definition_overrides(tmpdir):
@@ -87,7 +89,7 @@ def test_generate_task_definition_overrides(tmpdir):
     filename = tmpdir.join("task_definition.json")
     filename.write(task_data)
 
-    result = task_definitions.generate_task_definition(
+    task_definition = task_definitions.generate_task_definition(
         filename.strpath,
         environment={},
         template_vars={"image": "my-docker-image:1.0"},
@@ -100,29 +102,31 @@ def test_generate_task_definition_overrides(tmpdir):
         },
         name="my-task-def",
     )
-    expected = {
-        "family": "my-task-def",
-        "volumes": [],
-        "containerDefinitions": [
-            {
-                "name": "default",
-                "image": "my-docker-image:1.0",
-                "essential": True,
-                "command": ["hello", "world"],
-                "hostname": "my-task-def",
-                "memory": 512,
-                "memoryReservation": 128,
-                "cpu": 0,
-                "portMappings": [
-                    {"containerPort": 8080, "hostPort": 0},
-                    {"containerPort": 9000, "hostPort": 80},
-                ],
-                "environment": {},
-            }
-        ],
-        "tags": [{"key": "createdBy", "value": "ecs-deplojo"}],
-    }
-    assert result == expected
+    expected = task_definitions.TaskDefinition(
+        {
+            "family": "my-task-def",
+            "volumes": [],
+            "containerDefinitions": [
+                {
+                    "name": "default",
+                    "image": "my-docker-image:1.0",
+                    "essential": True,
+                    "command": ["hello", "world"],
+                    "hostname": "my-task-def",
+                    "memory": 512,
+                    "memoryReservation": 128,
+                    "cpu": 0,
+                    "portMappings": [
+                        {"containerPort": 8080, "hostPort": 0},
+                        {"containerPort": 9000, "hostPort": 80},
+                    ],
+                    "environment": {},
+                }
+            ],
+            "tags": [{"key": "createdBy", "value": "ecs-deplojo"}],
+        }
+    )
+    assert task_definition == expected
 
 
 def test_generate_multiple_task_definitions(tmpdir):
@@ -191,8 +195,8 @@ def test_generate_multiple_task_definitions(tmpdir):
     )
 
     expected = {
-        "task-def-1": {
-            "definition": {
+        "task-def-1": task_definitions.TaskDefinition(
+            {
                 "family": "task-def-1",
                 "volumes": [],
                 "containerDefinitions": [
@@ -227,9 +231,9 @@ def test_generate_multiple_task_definitions(tmpdir):
                 ],
                 "tags": [{"key": "createdBy", "value": "ecs-deplojo"}],
             }
-        },
-        "task-def-2": {
-            "definition": {
+        ),
+        "task-def-2": task_definitions.TaskDefinition(
+            {
                 "family": "task-def-2",
                 "volumes": [],
                 "containerDefinitions": [
@@ -264,7 +268,7 @@ def test_generate_multiple_task_definitions(tmpdir):
                 ],
                 "tags": [{"key": "createdBy", "value": "ecs-deplojo"}],
             }
-        },
+        ),
     }
 
     assert result == expected
@@ -366,23 +370,25 @@ def test_generate_task_definition_with_task_role_arn(tmpdir):
         name="my-task-def",
     )
 
-    expected = {
-        "family": "my-task-def",
-        "taskRoleArn": "arn:my-task-role",
-        "volumes": [],
-        "containerDefinitions": [
-            {
-                "name": "default",
-                "image": "my-docker-image:1.0",
-                "essential": True,
-                "hostname": "my-task-def",
-                "command": ["hello", "world"],
-                "memory": 256,
-                "cpu": 0,
-                "portMappings": [{"containerPort": 8080, "hostPort": 0}],
-                "environment": {},
-            }
-        ],
-        "tags": [{"key": "createdBy", "value": "ecs-deplojo"}],
-    }
+    expected = task_definitions.TaskDefinition(
+        {
+            "family": "my-task-def",
+            "taskRoleArn": "arn:my-task-role",
+            "volumes": [],
+            "containerDefinitions": [
+                {
+                    "name": "default",
+                    "image": "my-docker-image:1.0",
+                    "essential": True,
+                    "hostname": "my-task-def",
+                    "command": ["hello", "world"],
+                    "memory": 256,
+                    "cpu": 0,
+                    "portMappings": [{"containerPort": 8080, "hostPort": 0}],
+                    "environment": {},
+                }
+            ],
+            "tags": [{"key": "createdBy", "value": "ecs-deplojo"}],
+        }
+    )
     assert result == expected
