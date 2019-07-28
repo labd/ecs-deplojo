@@ -10,6 +10,7 @@ from moto.ec2 import ec2_backend
 
 from ecs_deplojo.connection import Connection
 from ecs_deplojo.task_definitions import TaskDefinition
+from tests.utils import deindent_text
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -60,3 +61,90 @@ def default_config():
 
     with open(path, "r") as fh:
         yield fh
+
+
+@pytest.fixture
+def example_project(tmpdir):
+    data = """
+    {
+      "family": "default",
+      "volumes": [],
+      "containerDefinitions": [
+        {
+          "name": "web-1",
+          "image": "${image}",
+          "essential": true,
+          "command": ["hello", "world"],
+          "memory": 256,
+          "cpu": 0,
+          "portMappings": [
+            {
+              "containerPort": 8080,
+              "hostPort": 0
+            }
+          ]
+        },
+        {
+          "name": "web-2",
+          "image": "${image}",
+          "essential": true,
+          "command": ["hello", "world"],
+          "memory": 256,
+          "cpu": 0,
+          "portMappings": [
+            {
+              "containerPort": 8080,
+              "hostPort": 0
+            }
+          ]
+        }
+      ]
+    }
+    """.strip()
+
+    filename = tmpdir.join("task_definition.json")
+    filename.write(data)
+
+    data = deindent_text(
+        """
+    ---
+    cluster_name: default
+    environment:
+      DATABASE_URL: postgresql://
+    environment_groups:
+      group-1:
+        ENV_CODE: 12345
+    task_definitions:
+      web:
+        template: %(template_filename)s
+        environment_group: group-1
+        task_role_arn: my-test
+        overrides:
+          web-1:
+            memory: 512
+            portMappings:
+              - hostPort: 0
+                containerPort: 8080
+                protocol: tcp
+    services:
+      web:
+        task_definition: web
+
+    before_deploy:
+      - task_definition: web
+        container: web-1
+        command: manage.py migrate --noinput
+
+    after_deploy:
+      - task_definition: web
+        container: web-1
+        command: manage.py clearsessions
+
+
+    """
+        % {"template_filename": filename.strpath}
+    )
+
+    filename = tmpdir.join("config.yml")
+    filename.write(data)
+    return filename

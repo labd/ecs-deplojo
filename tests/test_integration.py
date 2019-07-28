@@ -1,96 +1,28 @@
+import pytest
 from click.testing import CliRunner
 
 from ecs_deplojo import cli
-from tests.utils import deindent_text
+from ecs_deplojo.deployment import DeploymentFailed
 
 
-def test_new_service(tmpdir, cluster, monkeypatch, caplog):
-    data = """
-    {
-      "family": "default",
-      "volumes": [],
-      "containerDefinitions": [
-        {
-          "name": "web-1",
-          "image": "${image}",
-          "essential": true,
-          "command": ["hello", "world"],
-          "memory": 256,
-          "cpu": 0,
-          "portMappings": [
-            {
-              "containerPort": 8080,
-              "hostPort": 0
-            }
-          ]
-        },
-        {
-          "name": "web-2",
-          "image": "${image}",
-          "essential": true,
-          "command": ["hello", "world"],
-          "memory": 256,
-          "cpu": 0,
-          "portMappings": [
-            {
-              "containerPort": 8080,
-              "hostPort": 0
-            }
-          ]
-        }
-      ]
-    }
-    """.strip()
+def test_cli_execution_existing_service(
+    example_project, cluster, caplog, connection, definition
+):
 
-    filename = tmpdir.join("task_definition.json")
-    filename.write(data)
-
-    data = deindent_text(
-        """
-    ---
-    cluster_name: default
-    environment:
-      DATABASE_URL: postgresql://
-    environment_groups:
-      group-1:
-        ENV_CODE: 12345
-    task_definitions:
-      web:
-        template: %(template_filename)s
-        environment_group: group-1
-        task_role_arn: my-test
-        overrides:
-          web-1:
-            memory: 512
-            portMappings:
-              - hostPort: 0
-                containerPort: 8080
-                protocol: tcp
-    services:
-      web:
-        task_definition: web
-
-    before_deploy:
-      - task_definition: web
-        container: web-1
-        command: manage.py migrate --noinput
-
-    after_deploy:
-      - task_definition: web
-        container: web-1
-        command: manage.py clearsessions
-
-
-    """
-        % {"template_filename": filename.strpath}
+    # Make sure the service exists
+    retval = connection.ecs.register_task_definition(**definition.as_dict())
+    task_definition_arn = retval["taskDefinition"]["taskDefinitionArn"]
+    connection.ecs.create_service(
+        cluster=cluster["cluster"]["clusterName"],
+        serviceName="web",
+        taskDefinition=task_definition_arn,
+        desiredCount=1,
     )
-
-    filename = tmpdir.join("config.yml")
-    filename.write(data)
 
     runner = CliRunner()
     result = runner.invoke(
-        cli.main, ["--config=%s" % filename.strpath, "--var=image=my-docker-image:1.0"]
+        cli.main,
+        ["--config=%s" % example_project.strpath, "--var=image=my-docker-image:1.0"],
     )
     assert result.exit_code == 0, result.output
 
@@ -98,7 +30,69 @@ def test_new_service(tmpdir, cluster, monkeypatch, caplog):
         "Starting deploy on cluster default (1 services)",
         "Registered new task definition web:1",
         "Starting one-off task 'manage.py migrate --noinput' via web:1 (web-1)",
+        "Updating service web with task definition web:1",
+        "Waiting for deployments",
+        "Deployment finished: web (1/1)",
+        "Starting one-off task 'manage.py clearsessions' via web:1 (web-1)",
+        "Deregistering old task definitions",
+        " - web",
+    ]
+    lines = [r.message for r in caplog.records if r.name.startswith("deploy")]
+    assert lines == expected
+
+
+def test_run_missing_service(example_project, cluster, caplog):
+    with pytest.raises(DeploymentFailed):
+        cli.run(
+            filename=example_project.strpath,
+            template_vars={"image": "my-docker-image:1.0"},
+            create_missing_services=False,
+        )
+
+
+def test_run_create_service(example_project, cluster, caplog):
+    cli.run(
+        filename=example_project.strpath,
+        template_vars={"image": "my-docker-image:1.0"},
+        create_missing_services=True,
+    )
+
+    expected = [
+        "Starting deploy on cluster default (1 services)",
+        "Registered new task definition web:1",
+        "Starting one-off task 'manage.py migrate --noinput' via web:1 (web-1)",
         "Creating new service web with task definition web:1",
+        "Waiting for deployments",
+        "Deployment finished: web (1/1)",
+        "Starting one-off task 'manage.py clearsessions' via web:1 (web-1)",
+        "Deregistering old task definitions",
+        " - web",
+    ]
+    lines = [r.message for r in caplog.records if r.name.startswith("deploy")]
+    assert lines == expected
+
+
+def test_run_update_service(example_project, cluster, connection, definition, caplog):
+    # Make sure the service exists
+    retval = connection.ecs.register_task_definition(**definition.as_dict())
+    task_definition_arn = retval["taskDefinition"]["taskDefinitionArn"]
+    connection.ecs.create_service(
+        cluster=cluster["cluster"]["clusterName"],
+        serviceName="web",
+        taskDefinition=task_definition_arn,
+        desiredCount=1,
+    )
+    cli.run(
+        filename=example_project.strpath,
+        template_vars={"image": "my-docker-image:1.0"},
+        create_missing_services=False,
+    )
+
+    expected = [
+        "Starting deploy on cluster default (1 services)",
+        "Registered new task definition web:1",
+        "Starting one-off task 'manage.py migrate --noinput' via web:1 (web-1)",
+        "Updating service web with task definition web:1",
         "Waiting for deployments",
         "Deployment finished: web (1/1)",
         "Starting one-off task 'manage.py clearsessions' via web:1 (web-1)",
