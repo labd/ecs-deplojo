@@ -1,7 +1,7 @@
 import boto3
 
 
-class Connection(object):
+class Connection:
     def __init__(self, role_arn=None):
         credentials = {}
         if role_arn:
