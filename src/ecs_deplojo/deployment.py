@@ -12,20 +12,35 @@ from ecs_deplojo.register import (
     deregister_task_definitions, register_task_definitions)
 
 
-def start_deployment(config, connection, task_definitions):
+def start_deployment(
+    config: typing.Dict[str, typing.Any],
+    connection: Connection,
+    task_definitions: typing.Dict[str, TaskDefinition],
+    create_missing_services: bool = False,
+) -> None:
     """Start the deployment.
 
     The following steps are executed:
 
-    1. The task definitions are registered with AWS
-    2. The before_deploy tasks are started
-    3. The services are updated to reference the last task definitions
-    4. The client poll's AWS until all deployments are finished.
-    5. The after_deploy tasks are started.
+    1. Check if all services defined in the task definitions exist
+    2. The task definitions are registered with AWS
+    3. The before_deploy tasks are started
+    4. The services are updated to reference the last task definitions
+    5. The client poll's AWS until all deployments are finished.
+    6. The after_deploy tasks are started.
 
     """
     cluster_name = config["cluster_name"]
     services = config["services"]
+
+    # Before doing anything, lets check if we need to create new services. By
+    # default we don't do that anymore (terraform should be used)
+    new_services = utils.find_missing_services(
+        connection.ecs, cluster=cluster_name, services=set(task_definitions.keys())
+    )
+    if not create_missing_services and new_services:
+        names = ', '.join(new_services)
+        raise DeploymentFailed("The following services are missing: %s" % names)
 
     # Register the task definitions in ECS
     register_task_definitions(connection, task_definitions)
@@ -33,13 +48,6 @@ def start_deployment(config, connection, task_definitions):
     # Run tasks before deploying services
     tasks_before_deploy = config.get("before_deploy", [])
     run_tasks(connection, cluster_name, task_definitions, tasks_before_deploy)
-
-    # Check if all services exist
-    existing_services = utils.describe_services(
-        connection.ecs, cluster=cluster_name, services=task_definitions.keys()
-    )
-    available_services = {service["serviceName"] for service in existing_services}
-    new_services = set(task_definitions.keys()) - available_services
 
     # Update services
     for service_name, service in services.items():

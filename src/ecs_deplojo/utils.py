@@ -1,22 +1,34 @@
-def slice_iterable(iterable, size):
-    """Slice an iterable in chunks of `size` length"""
-    buffer = []
-    for item in iterable:
-        buffer.append(item)
-        if len(buffer) == size:
-            # yield collected full chunk
-            yield buffer
-            buffer = []
-    if buffer:
-        yield buffer
+import typing
 
 
-def describe_services(ecs, cluster, services):
-    """Custom version since the default limits to 10 services per call"""
+def find_missing_services(
+    ecs, cluster: str, services: typing.Set[str]
+) -> typing.Set[str]:
+    """Return a set of service names which don't exist in AWS.
 
-    result = []
-    for services_slice in slice_iterable(services, 10):
+    We use `ECS.Client.describe_services` since we have a list of service
+    names we want to check and instead of just retrieving all services in the
+    cluster we pass the items we want. We can only pass 10 services per call
+    so we iterate over the list in chunks.
+    """
+    existing_services = set()
+    for service in describe_services(ecs, cluster, services):
+        existing_services.add(service["serviceName"])
+    return set(services) - existing_services
 
-        response = ecs.describe_services(cluster=cluster, services=services_slice)
+
+def describe_services(
+    ecs, cluster: str, services: typing.Set[str]
+) -> typing.List[typing.Dict[str, typing.Any]]:
+    """Wrap `ECS.Client.describe_services` to allow more then 10 services in
+    one call.
+
+    """
+    result: typing.List[typing.Dict[str, typing.Any]] = []
+    services_list = list(services)
+    for i in range(0, len(services_list), 10):
+        response = ecs.describe_services(
+            cluster=cluster, services=services_list[i : i + 10]
+        )
         result.extend(response["services"])
     return result
