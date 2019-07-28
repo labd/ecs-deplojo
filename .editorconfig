@@ -1,13 +1,11 @@
 root = true
 
 [*.py]
-line_length = 79
+line_length = 89
 multi_line_output = 4
 balanced_wrapping = true
 known_first_party = ecs_deplojo,tests
 use_parentheses = true
-skip_glob=*/src/ecs_deplojo/**/migrations/*.py,*/tests/**/*.py
-
 
 [*.yml]
 indent_size = 2

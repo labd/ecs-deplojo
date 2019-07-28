@@ -12,7 +12,7 @@ install_requires = [
 
 tests_requires = [
     'flake8==3.7.8',
-    'isort==4.2.5',
+    'isort==4.3.21',
     'moto==1.3.13',
     'pytest==5.0.1',
     'pytest-cov==2.7.1',
