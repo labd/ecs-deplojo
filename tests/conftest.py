@@ -1,5 +1,6 @@
 import json
 import os
+from textwrap import dedent
 
 import boto3
 import pytest
@@ -10,7 +11,6 @@ from moto.ec2 import ec2_backend
 
 from ecs_deplojo.connection import Connection
 from ecs_deplojo.task_definitions import TaskDefinition
-from tests.utils import deindent_text
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -105,8 +105,7 @@ def example_project(tmpdir):
     filename = tmpdir.join("task_definition.json")
     filename.write(data)
 
-    data = deindent_text(
-        """
+    data = dedent("""
     ---
     cluster_name: default
     environment:
@@ -139,8 +138,6 @@ def example_project(tmpdir):
       - task_definition: web
         container: web-1
         command: manage.py clearsessions
-
-
     """
         % {"template_filename": filename.strpath}
     )
