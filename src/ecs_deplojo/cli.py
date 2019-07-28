@@ -2,6 +2,7 @@ import os.path
 import re
 import sys
 import tokenize
+import typing
 
 import click
 import yaml
@@ -28,15 +29,39 @@ class VarType(click.ParamType):
 
 
 @click.command()
-@click.option("--config", required=True, type=click.File())
+@click.option("--config", required=True, type=click.Path())
 @click.option("--var", multiple=True, type=VarType())
 @click.option("--dry-run", is_flag=True, default=False)
 @click.option("--output-path", required=False, type=click.Path())
 @click.option("--role-arn", required=False, type=str)
-def main(config, var, output_path, dry_run, role_arn=None):
-    base_path = os.path.dirname(config.name)
-    config = yaml.safe_load(config)
-    template_vars = dict(var)
+@click.option("--create-missing-services", default=False, type=bool)
+def main(
+    config, var, output_path, dry_run, role_arn=None, create_missing_services=False
+):
+    try:
+        run(
+            filename=config,
+            template_vars=dict(var),
+            role_arn=role_arn,
+            output_path=output_path,
+            create_missing_services=create_missing_services,
+            dry_run=dry_run,
+        )
+    except DeploymentFailed:
+        sys.exit(1)
+
+
+def run(
+    filename: str,
+    template_vars: typing.Dict[str, str],
+    role_arn: typing.Optional[str] = None,
+    output_path: typing.Optional[str] = None,
+    create_missing_services=False,
+    dry_run=False,
+):
+    base_path = os.path.dirname(filename)
+    with open(filename, "r") as fh:
+        config = yaml.safe_load(fh.read())
 
     connection = Connection(role_arn)
     cluster_name = config["cluster_name"]
@@ -61,9 +86,4 @@ def main(config, var, output_path, dry_run, role_arn=None):
 
     # Run the deployment
     if not dry_run:
-        try:
-            start_deployment(config, connection, task_definitions)
-        except DeploymentFailed:
-            sys.exit(1)
-
-    sys.exit(0)
+        start_deployment(config, connection, task_definitions, create_missing_services)
