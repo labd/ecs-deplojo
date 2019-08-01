@@ -11,6 +11,12 @@ coverage:
 install:
 	pip install -e .[test]
 
+docker-build:
+	docker build -t labdigital/ecs-deplojo:0.8.0 .
+
+docker-push:
+	docker push labdigital/ecs-deplojo:0.8.0
+
 lint:
 	flake8 src/ tests/
 	isort --recursive --check-only --diff src tests
