@@ -86,4 +86,8 @@ def run(
 
     # Run the deployment
     if not dry_run:
-        start_deployment(config, connection, task_definitions, create_missing_services)
+        try:
+            start_deployment(config, connection, task_definitions, create_missing_services)
+        except DeploymentFailed:
+            logger.exception("Error, exiting")
+            sys.exit(1)
