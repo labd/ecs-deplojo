@@ -38,10 +38,10 @@ def start_deployment(
     # Before doing anything, lets check if we need to create new services. By
     # default we don't do that anymore (terraform should be used)
     new_services = utils.find_missing_services(
-        connection.ecs, cluster=cluster_name, services=set(task_definitions.keys())
+        connection.ecs, cluster=cluster_name, services=set(services.keys())
     )
     if not create_missing_services and new_services:
-        names = ', '.join(new_services)
+        names = ", ".join(new_services)
         raise DeploymentFailed("The following services are missing: %s" % names)
 
     # Register the task definitions in ECS
