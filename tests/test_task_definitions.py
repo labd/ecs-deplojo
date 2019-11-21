@@ -392,3 +392,63 @@ def test_generate_task_definition_with_task_role_arn(tmpdir):
         }
     )
     assert result == expected
+
+
+def test_generate_task_definition_with_execution_role_arn(tmpdir):
+    task_data = """
+    {
+      "family": "default",
+      "volumes": [],
+      "containerDefinitions": [
+        {
+          "name": "default",
+          "image": "${image}",
+          "essential": true,
+          "command": ["hello", "world"],
+          "memory": 256,
+          "cpu": 0,
+          "portMappings": [
+            {
+              "containerPort": 8080,
+              "hostPort": 0
+            }
+          ]
+        }
+      ]
+    }
+    """.strip()
+
+    filename = tmpdir.join("task_definition.json")
+    filename.write(task_data)
+
+    result = task_definitions.generate_task_definition(
+        filename.strpath,
+        environment={},
+        execution_role_arn="arn:my-task-execution-role",
+        template_vars={"image": "my-docker-image:1.0"},
+        overrides={},
+        name="my-task-def",
+    )
+
+    expected = task_definitions.TaskDefinition(
+        {
+            "family": "my-task-def",
+            "executionRoleArn": "arn:my-task-execution-role",
+            "volumes": [],
+            "containerDefinitions": [
+                {
+                    "name": "default",
+                    "image": "my-docker-image:1.0",
+                    "essential": True,
+                    "hostname": "my-task-def",
+                    "command": ["hello", "world"],
+                    "memory": 256,
+                    "cpu": 0,
+                    "portMappings": [{"containerPort": 8080, "hostPort": 0}],
+                    "environment": {},
+                }
+            ],
+            "tags": [{"key": "createdBy", "value": "ecs-deplojo"}],
+        }
+    )
+    assert result == expected
