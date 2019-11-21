@@ -198,7 +198,7 @@ def generate_task_definition(
         task_definition.task_role_arn = task_role_arn
 
     if execution_role_arn:
-        task_definition.execution_rol_arn = execution_role_arn
+        task_definition.execution_role_arn = execution_role_arn
 
     # If no hostname is specified for the container we set it ourselves to
     # `{family}-{container-name}-{num}`
