@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 
 install_requires = [
-    'boto3==1.9.196',
+    'boto3==1.10.23',
     'click==7.0',
     'pyaml==16.12.2',
     'pytz',
@@ -13,7 +13,7 @@ install_requires = [
 tests_requires = [
     'flake8==3.7.8',
     'isort==4.3.21',
-    'moto==1.3.13',
+    'moto==1.3.14',
     'pytest==5.0.1',
     'pytest-cov==2.7.1',
 ]
