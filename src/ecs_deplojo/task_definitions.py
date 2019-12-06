@@ -126,6 +126,14 @@ class TaskDefinition:
         self._data["taskRoleArn"] = value
 
     @property
+    def execution_role_arn(self) -> str:
+        return self._data.get("executionRoleArn")
+
+    @execution_role_arn.setter
+    def execution_role_arn(self, value: str):
+        self._data["executionRoleArn"] = value
+
+    @property
     def arn(self) -> str:
         return self._data.get("arn")
 
@@ -176,6 +184,7 @@ def generate_task_definitions(
             base_path=base_path,
             task_role_arn=info.get("task_role_arn"),
             secrets=config.get("secrets", {}),
+            execution_role_arn=info.get("execution_role_arn"),
         )
         if output_path:
             write_task_definition(name, definition, output_path)
@@ -193,6 +202,7 @@ def generate_task_definition(
     base_path=None,
     task_role_arn=None,
     secrets: typing.Dict[str, str] = {},
+    execution_role_arn=None,
 ) -> TaskDefinition:
 
     """Generate the task definitions"""
@@ -205,6 +215,9 @@ def generate_task_definition(
     task_definition.family = name
     if task_role_arn:
         task_definition.task_role_arn = task_role_arn
+
+    if execution_role_arn:
+        task_definition.execution_role_arn = execution_role_arn
 
     # If no hostname is specified for the container we set it ourselves to
     # `{family}-{container-name}-{num}`
