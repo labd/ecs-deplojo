@@ -31,6 +31,13 @@ class TaskDefinition:
                 ],
                 key=operator.itemgetter("name"),
             )
+            container["secrets"] = sorted(
+                [
+                    {"name": k, "valueFrom": str(v)}
+                    for k, v in container.get("secrets", {}).items()
+                ],
+                key=operator.itemgetter("name"),
+            )
         return result
 
     def apply_variables(self, variables: typing.Dict[str, str]):
@@ -54,6 +61,16 @@ class TaskDefinition:
         """Interpolate all the variables used in the task definition"""
         for container in self.container_definitions:
             container["environment"] = env
+
+    def set_secrets(self, secrets: typing.Dict[str, str]):
+        """Interpolate all the secrets used in the task definition.
+
+        Secrets will be fetched from the AWS Parameter store and injected in the
+        environment variables during container startup
+
+        """
+        for container in self.container_definitions:
+            container["secrets"] = secrets
 
     def __str__(self):
         if self._data.get("name"):
@@ -166,12 +183,13 @@ def generate_task_definitions(
             name=name,
             base_path=base_path,
             task_role_arn=info.get("task_role_arn"),
+            secrets=config.get("secrets", {}),
             execution_role_arn=info.get("execution_role_arn"),
         )
-
         if output_path:
             write_task_definition(name, definition, output_path)
         task_definitions[name] = definition
+
     return task_definitions
 
 
@@ -183,6 +201,7 @@ def generate_task_definition(
     name,
     base_path=None,
     task_role_arn=None,
+    secrets: typing.Dict[str, str] = {},
     execution_role_arn=None,
 ) -> TaskDefinition:
 
@@ -210,6 +229,8 @@ def generate_task_definition(
         container.setdefault("hostname", hostname)
 
     task_definition.set_environment(environment)
+    if secrets:
+        task_definition.set_secrets(secrets)
     task_definition.apply_variables(template_vars)
     task_definition.apply_overrides(overrides)
     task_definition.tags = [{"key": "createdBy", "value": "ecs-deplojo"}]
