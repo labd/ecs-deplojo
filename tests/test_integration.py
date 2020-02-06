@@ -2,7 +2,6 @@ import pytest
 from click.testing import CliRunner
 
 from ecs_deplojo import cli
-from ecs_deplojo.deployment import DeploymentFailed
 
 
 def test_cli_execution_existing_service(
@@ -42,7 +41,7 @@ def test_cli_execution_existing_service(
 
 
 def test_run_missing_service(example_project, cluster, caplog):
-    with pytest.raises(DeploymentFailed):
+    with pytest.raises(SystemExit):
         cli.run(
             filename=example_project.strpath,
             template_vars={"image": "my-docker-image:1.0"},
