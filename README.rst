@@ -15,11 +15,11 @@ Status
 
 .. image:: https://readthedocs.org/projects/ecs-deplojo/badge/?version=latest
     :target: https://readthedocs.org/projects/ecs-deplojo/
-   
+
 .. image:: https://travis-ci.org/LabD/ecs-deplojo.svg?branch=master
     :target: https://travis-ci.org/LabD/ecs-deplojo
 
-.. image:: http://codecov.io/github/LabD/ecs-deplojo/coverage.svg?branch=master 
+.. image:: http://codecov.io/github/LabD/ecs-deplojo/coverage.svg?branch=master
     :target: http://codecov.io/github/LabD/ecs-deplojo?branch=master
 
 .. image:: https://img.shields.io/pypi/v/ecs-deplojo.svg
@@ -56,7 +56,7 @@ Example configuration
         DATABASE_URL: postgresql://
 
     task_definitions:
-      web: 
+      web:
         template: task_definitions/web.json
         overrides:
           uwsgi:
@@ -69,7 +69,7 @@ Example configuration
         template: task_definitions/manage.json
 
     services:
-      web: 
+      web:
         task_definition: web
 
     before_deploy:
@@ -81,6 +81,43 @@ Example configuration
       - task_definition: manage
         container: uwsgi
         command: manage.py clearsessions
+
+
+Using SSM secrets
+-----------------
+
+When you want to use the AWS SSM secrets in your configuration you can use the `secrets`
+section, however this needs some additional configuration within AWS
+
+At first you need an AWS IAM role to use as the ECS execution role, this role needs
+access to the secrets in Secrets Manager or Parameter store and will only be used during
+the startup of your Docker container.
+
+**Example configuration:**
+
+.. code-block:: yaml
+
+    --
+    cluster_name: example
+
+    environment:
+      NORMAL_ENV_VAR: value_of_variable
+
+    secrets:
+      DATABASE_URL: /path/to/secret/DATABASE_URL
+
+    task_definitions:
+      web:
+        execution_role_arn: arn:aws:iam::<account_id>:role/execution_role_name
+        template: task_definitions/web.json
+
+    services:
+      web:
+        task_definition: web
+
+
+When the container is started the secrets are available as environment variables and
+hidden in the AWS ECS console.
 
 
 Example log output
