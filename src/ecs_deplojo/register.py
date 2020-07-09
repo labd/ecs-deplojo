@@ -31,13 +31,14 @@ def deregister_task_definitions(
     by ecs-deplojo.
 
     """
+
     def yield_arns(family) -> typing.Generator[str, None, None]:
         paginator = connection.ecs.get_paginator("list_task_definitions")
         for page in paginator.paginate(familyPrefix=family):
-            for arn in page['taskDefinitionArns']:
+            for arn in page["taskDefinitionArns"]:
                 info = connection.ecs.list_tags_for_resource(resourceArn=arn)
-                tags = {i['key']: i['value'] for i in info['tags']}
-                if tags.get('createdBy') == 'ecs-deplojo':
+                tags = {i["key"]: i["value"] for i in info["tags"]}
+                if tags.get("createdBy") == "ecs-deplojo":
                     yield arn
 
     logger.info("Deregistering old task definitions")

@@ -19,11 +19,15 @@ docker-push:
 
 lint:
 	flake8 src/ tests/
-	isort --recursive --check-only --diff src tests
+	isort --check --diff src tests
+	black --check-only src/ tests/
 
 test:
 	py.test -vvv tests/
 
+format:
+	isort src tests
+	black src/ tests/
 
 release:
 	pip install twine wheel

@@ -3,11 +3,10 @@ import os
 from textwrap import dedent
 
 import boto3
-import pytest
-
 import moto
-from moto.ec2 import utils as ec2_utils
+import pytest
 from moto.ec2 import ec2_backend
+from moto.ec2 import utils as ec2_utils
 
 from ecs_deplojo.connection import Connection
 from ecs_deplojo.task_definitions import TaskDefinition
@@ -105,7 +104,8 @@ def example_project(tmpdir):
     filename = tmpdir.join("task_definition.json")
     filename.write(data)
 
-    data = dedent("""
+    data = dedent(
+        """
     ---
     cluster_name: default
     environment:

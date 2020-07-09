@@ -47,7 +47,7 @@ def test_find_missing_services_paginate(cluster, connection, definition):
     missing = utils.find_missing_services(
         ecs=connection.ecs,
         cluster=cluster["cluster"]["clusterName"],
-        services=all_services
+        services=all_services,
     )
     all_services.remove("service-2")
     assert missing == all_services

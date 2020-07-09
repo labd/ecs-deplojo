@@ -489,9 +489,9 @@ def test_generate_task_definition_with_secrets(tmpdir):
         overrides={},
         name="my-task-def",
         secrets={
-          "SUPER_SECRET_ENV_VAR": "/path/in/param/store",
-          "SUPER_SECRET_ENV_VAR2": "/other/path/in/param/store",
-        }
+            "SUPER_SECRET_ENV_VAR": "/path/in/param/store",
+            "SUPER_SECRET_ENV_VAR2": "/other/path/in/param/store",
+        },
     )
 
     expected = task_definitions.TaskDefinition(
@@ -511,9 +511,9 @@ def test_generate_task_definition_with_secrets(tmpdir):
                     "portMappings": [{"containerPort": 8080, "hostPort": 0}],
                     "environment": {},
                     "secrets": {
-                      "SUPER_SECRET_ENV_VAR": "/path/in/param/store",
-                      "SUPER_SECRET_ENV_VAR2": "/other/path/in/param/store",
-                    }
+                        "SUPER_SECRET_ENV_VAR": "/path/in/param/store",
+                        "SUPER_SECRET_ENV_VAR2": "/other/path/in/param/store",
+                    },
                 }
             ],
             "tags": [{"key": "createdBy", "value": "ecs-deplojo"}],
