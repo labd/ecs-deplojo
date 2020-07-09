@@ -16,8 +16,8 @@ Status
 .. image:: https://readthedocs.org/projects/ecs-deplojo/badge/?version=latest
     :target: https://readthedocs.org/projects/ecs-deplojo/
 
-.. image:: https://travis-ci.org/LabD/ecs-deplojo.svg?branch=master
-    :target: https://travis-ci.org/LabD/ecs-deplojo
+.. image:: https://github.com/labd/ecs-deplojo/workflows/Python%20Tests/badge.svg
+    :target: https://github.com/labd/ecs-deplojo/actions?query=workflow%3A%22Python+Tests%22
 
 .. image:: http://codecov.io/github/LabD/ecs-deplojo/coverage.svg?branch=master
     :target: http://codecov.io/github/LabD/ecs-deplojo?branch=master
