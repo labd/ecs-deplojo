@@ -15,8 +15,8 @@ tests_requires = [
     'flake8==3.7.8',
     'isort==5.0.6',
     'moto==1.3.14',
-    'pytest==5.0.1',
-    'pytest-cov==2.7.1',
+    'pytest==5.4.3',
+    'pytest-cov==2.10.0',
 ]
 
 with open('README.rst') as fh:
