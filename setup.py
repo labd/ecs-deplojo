@@ -11,8 +11,9 @@ install_requires = [
 ]
 
 tests_requires = [
+    'coverage[toml]==5.0.3',
     'flake8==3.7.8',
-    'isort==4.3.21',
+    'isort==5.0.6',
     'moto==1.3.14',
     'pytest==5.0.1',
     'pytest-cov==2.7.1',
