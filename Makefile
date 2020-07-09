@@ -12,10 +12,10 @@ install:
 	pip install -e .[test]
 
 docker-build:
-	docker build -t labdigital/ecs-deplojo:0.9.0 .
+	docker build -t labdigital/ecs-deplojo:0.9.1 .
 
 docker-push:
-	docker push labdigital/ecs-deplojo:0.9.0
+	docker push labdigital/ecs-deplojo:0.9.1
 
 lint:
 	flake8 src/ tests/
