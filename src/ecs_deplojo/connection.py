@@ -1,4 +1,5 @@
 import boto3
+from botocore.config import Config
 
 
 class Connection:
@@ -14,4 +15,8 @@ class Connection:
                     "aws_session_token": resp["Credentials"]["SessionToken"],
                 }
             )
-        self.ecs = boto3.client("ecs", **credentials)
+        config = Config(
+            signature_version="v4", retries={"max_attempts": 10, "mode": "standard"}
+        )
+
+        self.ecs = boto3.client("ecs", config=config, **credentials)

@@ -22,7 +22,7 @@ lint:
 	isort --recursive --check-only --diff src tests
 
 test:
-	py.test -vvv
+	py.test -vvv tests/
 
 
 release:

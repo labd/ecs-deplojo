@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 
 install_requires = [
-    'boto3>=1.10.39,<1.11.0',
+    'boto3>=1.14.39,<1.15.0',
     'click==7.0',
     'pyaml==16.12.2',
     'pytz',
