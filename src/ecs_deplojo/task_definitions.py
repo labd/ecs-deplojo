@@ -149,6 +149,14 @@ class TaskDefinition:
     def container_definitions(self, value):
         self._data["containerDefinitions"] = value
 
+    @property
+    def network_mode(self) -> typing.Optional[str]:
+        return self._data.get("networkMode", None)
+
+    @network_mode.setter
+    def network_mode(self, value):
+        self._data["networkMode"] = value
+
 
 def generate_task_definitions(
     config, template_vars, base_path, output_path=None
@@ -185,6 +193,7 @@ def generate_task_definitions(
             task_role_arn=info.get("task_role_arn"),
             secrets=config.get("secrets", {}),
             execution_role_arn=info.get("execution_role_arn"),
+            network_mode=config.get("network_mode")
         )
         if output_path:
             write_task_definition(name, definition, output_path)
@@ -203,6 +212,7 @@ def generate_task_definition(
     task_role_arn=None,
     secrets: typing.Dict[str, str] = {},
     execution_role_arn=None,
+    network_mode=None,
 ) -> TaskDefinition:
 
     """Generate the task definitions"""
@@ -221,12 +231,14 @@ def generate_task_definition(
 
     # If no hostname is specified for the container we set it ourselves to
     # `{family}-{container-name}-{num}`
-    num_containers = len(task_definition.container_definitions)
-    for container in task_definition.container_definitions:
-        hostname = task_definition.family
-        if num_containers > 1:
-            hostname += "-%s" % container["name"].replace("_", "-")
-        container.setdefault("hostname", hostname)
+    # Skip this when network_mode == awsvpc, not supported by AWS.
+    if network_mode not in ["awsvpc"]:
+        num_containers = len(task_definition.container_definitions)
+        for container in task_definition.container_definitions:
+            hostname = task_definition.family
+            if num_containers > 1:
+                hostname += "-%s" % container["name"].replace("_", "-")
+            container.setdefault("hostname", hostname)
 
     task_definition.set_environment(environment)
     if secrets:
