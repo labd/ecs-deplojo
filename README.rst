@@ -120,6 +120,14 @@ When the container is started the secrets are available as environment variables
 hidden in the AWS ECS console.
 
 
+AWS Fargate
+-----------
+
+Services within AWS Fargate run in a AWS default vpc and therfore don't support the
+hostname config for containers. When you define ``networkMode="awsvpc"`` the hostname
+will not be included when creating a task definition.
+
+
 Example log output
 ------------------
 
