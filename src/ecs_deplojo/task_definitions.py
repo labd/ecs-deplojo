@@ -193,7 +193,6 @@ def generate_task_definitions(
             task_role_arn=info.get("task_role_arn"),
             secrets=config.get("secrets", {}),
             execution_role_arn=info.get("execution_role_arn"),
-            network_mode=config.get("network_mode")
         )
         if output_path:
             write_task_definition(name, definition, output_path)
@@ -212,10 +211,8 @@ def generate_task_definition(
     task_role_arn=None,
     secrets: typing.Dict[str, str] = {},
     execution_role_arn=None,
-    network_mode=None,
 ) -> TaskDefinition:
-
-    """Generate the task definitions"""
+    """Generate the task definitions."""
     if base_path:
         filename = os.path.join(base_path, filename)
 
@@ -232,7 +229,7 @@ def generate_task_definition(
     # If no hostname is specified for the container we set it ourselves to
     # `{family}-{container-name}-{num}`
     # Skip this when network_mode == awsvpc, not supported by AWS.
-    if network_mode not in ["awsvpc"]:
+    if task_definition.network_mode not in ["awsvpc"]:
         num_containers = len(task_definition.container_definitions)
         for container in task_definition.container_definitions:
             hostname = task_definition.family

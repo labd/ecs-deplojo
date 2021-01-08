@@ -556,7 +556,6 @@ def test_generate_task_definition_awsvpc(tmpdir):
         template_vars={"image": "my-docker-image:1.0"},
         overrides={},
         name="my-task-def",
-        network_mode="awsvpc"
     )
     expected = task_definitions.TaskDefinition(
         {
