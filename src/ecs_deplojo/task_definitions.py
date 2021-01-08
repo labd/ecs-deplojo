@@ -149,6 +149,14 @@ class TaskDefinition:
     def container_definitions(self, value):
         self._data["containerDefinitions"] = value
 
+    @property
+    def network_mode(self) -> typing.Optional[str]:
+        return self._data.get("networkMode", None)
+
+    @network_mode.setter
+    def network_mode(self, value):
+        self._data["networkMode"] = value
+
 
 def generate_task_definitions(
     config, template_vars, base_path, output_path=None
@@ -204,8 +212,7 @@ def generate_task_definition(
     secrets: typing.Dict[str, str] = {},
     execution_role_arn=None,
 ) -> TaskDefinition:
-
-    """Generate the task definitions"""
+    """Generate the task definitions."""
     if base_path:
         filename = os.path.join(base_path, filename)
 
@@ -221,12 +228,14 @@ def generate_task_definition(
 
     # If no hostname is specified for the container we set it ourselves to
     # `{family}-{container-name}-{num}`
-    num_containers = len(task_definition.container_definitions)
-    for container in task_definition.container_definitions:
-        hostname = task_definition.family
-        if num_containers > 1:
-            hostname += "-%s" % container["name"].replace("_", "-")
-        container.setdefault("hostname", hostname)
+    # Skip this when network_mode == awsvpc, not supported by AWS.
+    if task_definition.network_mode not in ["awsvpc"]:
+        num_containers = len(task_definition.container_definitions)
+        for container in task_definition.container_definitions:
+            hostname = task_definition.family
+            if num_containers > 1:
+                hostname += "-%s" % container["name"].replace("_", "-")
+            container.setdefault("hostname", hostname)
 
     task_definition.set_environment(environment)
     if secrets:

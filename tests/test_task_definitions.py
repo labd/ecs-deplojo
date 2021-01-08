@@ -520,3 +520,61 @@ def test_generate_task_definition_with_secrets(tmpdir):
         }
     )
     assert result == expected
+
+
+def test_generate_task_definition_awsvpc(tmpdir):
+    task_data = """
+    {
+      "family": "default",
+      "networkMode": "awsvpc",
+      "volumes": [],
+      "containerDefinitions": [
+        {
+          "name": "default",
+          "image": "${image}",
+          "essential": true,
+          "command": ["hello", "world"],
+          "memory": 256,
+          "cpu": 0,
+          "portMappings": [
+            {
+              "containerPort": 8080,
+              "hostPort": 0
+            }
+          ]
+        }
+      ]
+    }
+    """.strip()
+
+    filename = tmpdir.join("task_definition.json")
+    filename.write(task_data)
+
+    task_definition = task_definitions.generate_task_definition(
+        filename.strpath,
+        environment={},
+        template_vars={"image": "my-docker-image:1.0"},
+        overrides={},
+        name="my-task-def",
+    )
+    expected = task_definitions.TaskDefinition(
+        {
+            "family": "my-task-def",
+            "volumes": [],
+            "networkMode": "awsvpc",
+            "containerDefinitions": [
+                {
+                    "name": "default",
+                    "image": "my-docker-image:1.0",
+                    "essential": True,
+                    "command": ["hello", "world"],
+                    "memory": 256,
+                    "cpu": 0,
+                    "portMappings": [{"containerPort": 8080, "hostPort": 0}],
+                    "environment": {},
+                }
+            ],
+            "tags": [{"key": "createdBy", "value": "ecs-deplojo"}],
+        }
+    )
+    assert task_definition == expected
