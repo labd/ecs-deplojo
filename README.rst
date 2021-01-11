@@ -86,6 +86,8 @@ Example configuration
 Using SSM secrets
 -----------------
 
+**Warning secrets will become visible in the container's environent, use with caution**
+
 When you want to use the AWS SSM secrets in your configuration you can use the `secrets`
 section, however this needs some additional configuration within AWS
 
@@ -117,7 +119,7 @@ the startup of your Docker container.
 
 
 When the container is started the secrets are available as environment variables and
-hidden in the AWS ECS console.
+hidden in the AWS ECS console, this is not recommended in production.
 
 
 AWS Default VPC
