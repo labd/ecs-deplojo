@@ -22,11 +22,10 @@ def cluster():
         ec2 = boto3.client("ec2", region_name="eu-west-1")
         ecs = boto3.client("ecs", region_name="eu-west-1")
         known_amis = ec2.describe_images()
-        image_id = known_amis['Images'][0]['ImageId']
+        image_id = known_amis["Images"][0]["ImageId"]
         test_instance = ec2_resource.create_instances(
             ImageId=image_id, MinCount=1, MaxCount=1
         )[0]
-
 
         instance_id_document = json.dumps(
             ec2_utils.generate_instance_identity_document(test_instance)
