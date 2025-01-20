@@ -19,8 +19,12 @@ dependencies = [
 ecs-deplojo = "ecs_deplojo.cli:main"
 
 [build-system]
-requires = ["setuptools", "wheel", "setuptools_scm[toml]"]
+requires = ["setuptools", "setuptools-scm[toml]"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]                                                                                                                                                                                                                
+version_scheme = "guess-next-dev"                                                                                                                                                                                                    
+local_scheme = "no-local-version"     
 
 [tool.coverage.run]
 branch = true
