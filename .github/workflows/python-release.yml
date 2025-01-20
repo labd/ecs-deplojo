@@ -16,7 +16,7 @@ jobs:
     - name: Install build requirements
       run: python -m pip install uv
     - name: Build package
-      run: uv run build
+      run: uv build
     - name: Publish package
       uses: pypa/gh-action-pypi-publish@master
       with:
