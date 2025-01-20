@@ -1,6 +1,25 @@
+[project]
+name="ecs-deplojo"
+dynamic = ["version"]
+authors = [
+    {name = "Lab Digital B.V.", email = "opensource@labdigital.nl"},
+]
+description="Deployment tool for Amazon ECS"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+dependencies = [
+    "boto3>=1.36.2",
+    "click>=8.1.8",
+    "pyaml>=25.1.0",
+    "pytz>=2024.2",
+]
+
+[project.scripts]
+ecs-deplojo = "ecs_deplojo.cli:main"
 
 [build-system]
-requires = ["setuptools>=40.6.0", "wheel"]
+requires = ["setuptools", "wheel", "setuptools_scm[toml]"]
 build-backend = "setuptools.build_meta"
 
 [tool.coverage.run]
@@ -10,11 +29,10 @@ source = ["ecs_deplojo"]
 [tool.coverage.paths]
 source = ["src", ".tox/*/site-packages"]
 
-[tool.isort]
-line_length = 88
-multi_line_output = 3
-include_trailing_comma = true
-balanced_wrapping = true
-default_section = "THIRDPARTY"
-known_first_party = ["ecs_deplojo", "tests", "codegen"]
-use_parentheses = true
+[dependency-groups]
+test = [
+    "coverage[toml]>=7.6.10",
+    "moto>=5.0.27",
+    "pytest-cov>=6.0.0",
+    "ruff>=0.9.2",
+]

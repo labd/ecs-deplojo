@@ -7,7 +7,6 @@ from ecs_deplojo import cli
 def test_cli_execution_existing_service(
     example_project, cluster, caplog, connection, definition
 ):
-
     # Make sure the service exists
     retval = connection.ecs.register_task_definition(**definition.as_dict())
     task_definition_arn = retval["taskDefinition"]["taskDefinitionArn"]
