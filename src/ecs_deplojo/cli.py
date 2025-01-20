@@ -12,11 +12,6 @@ from ecs_deplojo.deployment import DeploymentFailed, start_deployment
 from ecs_deplojo.logger import logger
 from ecs_deplojo.task_definitions import generate_task_definitions
 
-try:
-    from botocore.compat import six
-except ImportError:
-    pass
-
 
 class VarType(click.ParamType):
     name = "var"

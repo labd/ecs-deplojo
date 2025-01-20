@@ -5,18 +5,18 @@ from setuptools import setup, find_packages
 
 install_requires = [
     "boto3>=1.36.2",
-    "click==7.0",
-    "pyaml==16.12.2",
+    "click==8.1.8",
+    "pyaml==25.1.0",
     "pytz",
 ]
 
 tests_requires = [
-    "coverage[toml]==5.0.3",
-    "flake8==3.7.8",
-    "isort==5.0.6",
-    "moto==1.3.14",
-    "pytest==5.4.3",
-    "pytest-cov==2.10.0",
+    "coverage[toml]==7.6.10",
+    "flake8",
+    "isort",
+    "moto",
+    "pytest==8.3.4",
+    "pytest-cov==6.0.0",
 ]
 
 with open("README.rst") as fh:
@@ -45,8 +45,9 @@ setup(
         "Development Status :: 5 - Production/Stable",
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.5",
-        "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
     ],
 )

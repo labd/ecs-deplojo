@@ -5,7 +5,6 @@ from textwrap import dedent
 import boto3
 import moto
 import pytest
-from moto.ec2 import ec2_backend
 from moto.ec2 import utils as ec2_utils
 
 from ecs_deplojo.connection import Connection
@@ -14,20 +13,18 @@ from ecs_deplojo.task_definitions import TaskDefinition
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
-@pytest.yield_fixture(scope="function")
+@pytest.fixture(scope="function")
 def cluster():
-
-    with moto.mock_ecs(), moto.mock_ec2():
+    with moto.mock_aws():
         boto3.setup_default_session(region_name="eu-west-1")
 
-        ec2 = boto3.resource("ec2", region_name="eu-west-1")
+        ec2_resource = boto3.resource("ec2", region_name="eu-west-1")
+        ec2_client = boto3.client("ec2", region_name="eu-west-1")
         ecs = boto3.client("ecs", region_name="eu-west-1")
-
-        known_amis = list(ec2_backend.describe_images())
-
-        test_instance = ec2.create_instances(
-            ImageId=known_amis[0].id, MinCount=1, MaxCount=1
+        test_instance = ec2_resource.create_instances(
+            ImageId="ami-12c6146b", MinCount=1, MaxCount=1
         )[0]
+
 
         instance_id_document = json.dumps(
             ec2_utils.generate_instance_identity_document(test_instance)
