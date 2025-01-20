@@ -19,10 +19,12 @@ def cluster():
         boto3.setup_default_session(region_name="eu-west-1")
 
         ec2_resource = boto3.resource("ec2", region_name="eu-west-1")
-        ec2_client = boto3.client("ec2", region_name="eu-west-1")
+        ec2 = boto3.client("ec2", region_name="eu-west-1")
         ecs = boto3.client("ecs", region_name="eu-west-1")
+        known_amis = ec2.describe_images()
+        image_id = known_amis['Images'][0]['ImageId']
         test_instance = ec2_resource.create_instances(
-            ImageId="ami-12c6146b", MinCount=1, MaxCount=1
+            ImageId=image_id, MinCount=1, MaxCount=1
         )[0]
 
 
