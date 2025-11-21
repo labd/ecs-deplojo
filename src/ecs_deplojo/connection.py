@@ -20,3 +20,4 @@ class Connection:
         )
 
         self.ecs = boto3.client("ecs", config=config, **credentials)
+        self.events = boto3.client("events", config=config, **credentials)

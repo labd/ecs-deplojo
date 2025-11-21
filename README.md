@@ -13,20 +13,19 @@ Installation
 Status
 ------
 
-.. image:: https://readthedocs.org/projects/ecs-deplojo/badge/?version=latest
-    :target: https://readthedocs.org/projects/ecs-deplojo/
+.. image:: <https://readthedocs.org/projects/ecs-deplojo/badge/?version=latest>
+    :target: <https://readthedocs.org/projects/ecs-deplojo/>
 
-.. image:: https://github.com/labd/ecs-deplojo/workflows/Python%20Tests/badge.svg
-    :target: https://github.com/labd/ecs-deplojo/actions?query=workflow%3A%22Python+Tests%22
+.. image:: <https://github.com/labd/ecs-deplojo/workflows/Python%20Tests/badge.svg>
+    :target: <https://github.com/labd/ecs-deplojo/actions?query=workflow%3A%22Python+Tests%22>
 
-.. image:: http://codecov.io/github/LabD/ecs-deplojo/coverage.svg?branch=master
-    :target: http://codecov.io/github/LabD/ecs-deplojo?branch=master
+.. image:: <http://codecov.io/github/LabD/ecs-deplojo/coverage.svg?branch=master>
+    :target: <http://codecov.io/github/LabD/ecs-deplojo?branch=master>
 
-.. image:: https://img.shields.io/pypi/v/ecs-deplojo.svg
-    :target: https://pypi.python.org/pypi/ecs-deplojo/
+.. image:: <https://img.shields.io/pypi/v/ecs-deplojo.svg>
+    :target: <https://pypi.python.org/pypi/ecs-deplojo/>
 
 .. end-no-pypi
-
 
 Usage
 -----
@@ -42,7 +41,6 @@ Usage
       --output-path PATH
       --role-arn <optional arn>
       --help              Show this message and exit.
-
 
 Example configuration
 ---------------------
@@ -72,6 +70,10 @@ Example configuration
       web:
         task_definition: web
 
+    scheduled_tasks:
+      cron-event:
+        task_definition: web
+
     before_deploy:
       - task_definition: manage
         container: uwsgi
@@ -81,7 +83,6 @@ Example configuration
       - task_definition: manage
         container: uwsgi
         command: manage.py clearsessions
-
 
 Using SSM secrets
 -----------------
@@ -117,10 +118,8 @@ the startup of your Docker container.
       web:
         task_definition: web
 
-
 When the container is started the secrets are available as environment variables and
 hidden in the AWS ECS console, this is not recommended in production.
-
 
 AWS Default VPC
 ---------------
@@ -129,13 +128,18 @@ When running your servers in the AWS default VPC you need ``networkMode="awsvpc"
 your task definition JSON file, this will ensure that no hostnames are set for the
 containers, since this isn't supported by AWS.
 
-
 AWS Fargate
 -----------
 
 Unlike EC2 based clusters AWS Fargate needs a ``execution_role_arn`` to work, this can be
 set in your service definition in the YAML file.
 
+AWS Scheduled tasks
+-------------------
+
+The configuration block 'scheduled_tasks' contains the name over the rule in EventBridge
+as key, and a reference to the task_definition whose taskDefinitionArn will be used to
+update the task definition on the scheduled target.
 
 Example log output
 ------------------

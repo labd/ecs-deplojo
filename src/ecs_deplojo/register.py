@@ -24,6 +24,24 @@ def register_task_definitions(
         logger.info("Registered new task definition %s", task_definition)
 
 
+def update_scheduled_tasks(
+    connection: Connection,
+    task_definitions: dict[str, TaskDefinition],
+    scheduled_tasks: dict[str, typing.Any],
+):
+    for rule_name, config in scheduled_tasks.items():
+        if not (task_definition := config.get("task_definition")):
+            continue
+        if not (task_definition := task_definitions.get(task_definition)):
+            continue
+
+        targets = connection.events.list_targets_by_rule(Rule=rule_name)
+        for target in targets["Targets"]:
+            target["EcsParameters"]["TaskDefinitionArn"] = task_definition.arn
+
+        connection.events.put_targets(Rule=rule_name, Targets=targets["Targets"])
+
+
 def deregister_task_definitions(
     connection: Connection, task_definitions: typing.Dict[str, TaskDefinition]
 ) -> None:

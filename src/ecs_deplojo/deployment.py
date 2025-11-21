@@ -10,7 +10,11 @@ from ecs_deplojo import utils
 from ecs_deplojo.connection import Connection
 from ecs_deplojo.exceptions import DeploymentFailed
 from ecs_deplojo.logger import logger
-from ecs_deplojo.register import deregister_task_definitions, register_task_definitions
+from ecs_deplojo.register import (
+    deregister_task_definitions,
+    register_task_definitions,
+    update_scheduled_tasks,
+)
 from ecs_deplojo.task_definitions import TaskDefinition
 
 
@@ -46,6 +50,10 @@ def start_deployment(
 
     # Register the task definitions in ECS
     register_task_definitions(connection, task_definitions)
+
+    # update the task-definition arns on scheduled tasks
+    scheduled_tasks = config.get("scheduled_tasks", {})
+    update_scheduled_tasks(connection, task_definitions, scheduled_tasks)
 
     # Run tasks before deploying services
     tasks_before_deploy = config.get("before_deploy", [])
