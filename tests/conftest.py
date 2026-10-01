@@ -13,7 +13,7 @@ from ecs_deplojo.task_definitions import TaskDefinition
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
-@pytest.yield_fixture(scope="function")
+@pytest.fixture
 def cluster():
     with moto.mock_aws():
         boto3.setup_default_session(region_name="eu-west-1")
@@ -22,13 +22,13 @@ def cluster():
         ecs = boto3.client("ecs", region_name="eu-west-1")
 
         known_amis = ec2.describe_images()
-        image_id = known_amis['Images'][0]['ImageId']
+        image_id = known_amis["Images"][0]["ImageId"]
 
         ec2 = boto3.resource("ec2", region_name="eu-west-1")
 
-        test_instance = ec2.create_instances(
-            ImageId=image_id, MinCount=1, MaxCount=1
-        )[0]
+        test_instance = ec2.create_instances(ImageId=image_id, MinCount=1, MaxCount=1)[
+            0
+        ]
 
         instance_id_document = json.dumps(
             ec2_utils.generate_instance_identity_document(test_instance)
@@ -51,7 +51,7 @@ def connection(cluster):
 def definition():
     path = os.path.join(BASE_DIR, "files/default_taskdef.json")
 
-    with open(path, "r") as json_file:
+    with open(path) as json_file:
         return TaskDefinition(json.load(json_file))
 
 
@@ -59,7 +59,7 @@ def definition():
 def default_config():
     path = os.path.join(BASE_DIR, "files/default_config.yml")
 
-    with open(path, "r") as fh:
+    with open(path) as fh:
         yield fh
 
 
@@ -106,7 +106,7 @@ def example_project(tmpdir):
     filename.write(data)
 
     data = dedent(
-        """
+        f"""
     ---
     cluster_name: default
     environment:
@@ -116,7 +116,7 @@ def example_project(tmpdir):
         ENV_CODE: 12345
     task_definitions:
       web:
-        template: %(template_filename)s
+        template: {filename.strpath}
         environment_group: group-1
         task_role_arn: my-test
         overrides:
@@ -140,7 +140,6 @@ def example_project(tmpdir):
         container: web-1
         command: manage.py clearsessions
     """
-        % {"template_filename": filename.strpath}
     )
 
     filename = tmpdir.join("config.yml")

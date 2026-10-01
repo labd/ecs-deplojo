@@ -1,9 +1,7 @@
 import typing
 
 
-def find_missing_services(
-    ecs, cluster: str, services: typing.Set[str]
-) -> typing.Set[str]:
+def find_missing_services(ecs, cluster: str, services: set[str]) -> set[str]:
     """Return a set of service names which don't exist in AWS.
 
     We use `ECS.Client.describe_services` since we have a list of service
@@ -18,13 +16,13 @@ def find_missing_services(
 
 
 def describe_services(
-    ecs, cluster: str, services: typing.Set[str]
-) -> typing.List[typing.Dict[str, typing.Any]]:
+    ecs, cluster: str, services: set[str]
+) -> list[dict[str, typing.Any]]:
     """Wrap `ECS.Client.describe_services` to allow more then 10 services in
     one call.
 
     """
-    result: typing.List[typing.Dict[str, typing.Any]] = []
+    result: list[dict[str, typing.Any]] = []
     services_list = list(services)
     for i in range(0, len(services_list), 10):
         response = ecs.describe_services(
