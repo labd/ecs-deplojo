@@ -6,20 +6,17 @@ from ecs_deplojo.task_definitions import TaskDefinition
 
 
 def register_task_definitions(
-    connection: Connection, task_definitions: typing.Dict[str, TaskDefinition]
+    connection: Connection, task_definitions: dict[str, TaskDefinition]
 ) -> None:
     """Update task definitions"""
 
-    for service_name, task_definition in task_definitions.items():
+    for task_definition in task_definitions.values():
         definition = task_definition.as_dict()
         result = connection.ecs.register_task_definition(**definition)
 
         task_definition.family = result["taskDefinition"]["family"]
         task_definition.revision = result["taskDefinition"]["revision"]
-        task_definition.name = "%s:%s" % (
-            result["taskDefinition"]["family"],
-            result["taskDefinition"]["revision"],
-        )
+        task_definition.name = f"{task_definition.family}:{task_definition.revision}"
         task_definition.arn = result["taskDefinition"]["taskDefinitionArn"]
         logger.info("Registered new task definition %s", task_definition)
 
@@ -43,7 +40,7 @@ def update_scheduled_tasks(
 
 
 def deregister_task_definitions(
-    connection: Connection, task_definitions: typing.Dict[str, TaskDefinition]
+    connection: Connection, task_definitions: dict[str, TaskDefinition]
 ) -> None:
     """Deregister all task definitions not used currently which are created
     by ecs-deplojo.
@@ -60,13 +57,10 @@ def deregister_task_definitions(
                     yield arn
 
     logger.info("Deregistering old task definitions")
-    for service_name, task_definition in task_definitions.items():
+    for task_definition in task_definitions.values():
         logger.info(" - %s", task_definition.family)
 
-        num = 0
-
-        for arn in yield_arns(task_definition.family):
-            num += 1
+        for num, arn in enumerate(yield_arns(task_definition.family), start=1):
             if arn != task_definition.arn:
                 connection.ecs.deregister_task_definition(taskDefinition=arn)
 

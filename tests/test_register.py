@@ -80,7 +80,7 @@ def test_deregister_task_definitions(cluster, connection):
     result = connection.ecs.list_task_definitions()
     assert len(result["taskDefinitionArns"]) == 0
 
-    for i in range(10):
+    for _ in range(10):
         task_def = copy.deepcopy(task_definitions)
         register.register_task_definitions(connection, task_def)
 
@@ -90,5 +90,5 @@ def test_deregister_task_definitions(cluster, connection):
     register.deregister_task_definitions(connection, task_def)
     result = connection.ecs.list_task_definitions()
     # deregistration of task definitions doesn't appear to work
-    #assert len(result["taskDefinitionArns"]) == 1
+    # assert len(result["taskDefinitionArns"]) == 1
     assert len(result["taskDefinitionArns"]) > 0

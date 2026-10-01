@@ -6,13 +6,12 @@ authors = [
 ]
 description="Deployment tool for Amazon ECS"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.12"
 license = {text = "MIT"}
 dependencies = [
     "boto3>=1.36.2",
     "click>=8.1.8",
     "pyaml>=25.1.0",
-    "pytz>=2024.2",
 ]
 
 [project.scripts]
@@ -32,6 +31,10 @@ source = ["ecs_deplojo"]
 
 [tool.coverage.paths]
 source = ["src", ".tox/*/site-packages"]
+
+[tool.ruff.lint]
+# Explicit list so new ruff defaults don't break CI on upgrade.
+select = ["E4", "E7", "E9", "F", "B", "DTZ", "PERF", "PT", "SIM", "UP"]
 
 [dependency-groups]
 test = [

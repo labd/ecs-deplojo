@@ -18,7 +18,7 @@ docker-push:
 	docker push labdigital/ecs-deplojo:0.9.2
 
 lint:
-	ruff src/ tests/
+	ruff check src/ tests/
 
 test:
 	py.test -vvv tests/

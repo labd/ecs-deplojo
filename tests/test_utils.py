@@ -43,7 +43,7 @@ def test_find_missing_services_paginate(cluster, connection, definition):
         taskDefinition=task_definition_arn,
     )
 
-    all_services = {"service-%d" % i for i in range(39)}
+    all_services = {f"service-{i}" for i in range(39)}
     missing = utils.find_missing_services(
         ecs=connection.ecs,
         cluster=cluster["cluster"]["clusterName"],
