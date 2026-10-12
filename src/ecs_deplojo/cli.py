@@ -2,7 +2,6 @@ import os.path
 import re
 import sys
 import tokenize
-import typing
 
 import click
 import yaml
@@ -15,15 +14,15 @@ from ecs_deplojo.task_definitions import generate_task_definitions
 
 class VarType(click.ParamType):
     name = "var"
-    re_pattern = re.compile("^%s$" % tokenize.Name)
+    re_pattern = re.compile(f"^{tokenize.Name}$")
 
     def convert(self, value, param, ctx):
         try:
             key, value = value.split("=", 1)
             if not self.re_pattern.match(key):
-                self.fail("%s is not a valid identifier" % key)
+                self.fail(f"{key} is not a valid identifier")
         except ValueError:
-            self.fail("%s is not a valid key/value string" % value, param, ctx)
+            self.fail(f"{value} is not a valid key/value string", param, ctx)
 
         return (key, value)
 
@@ -53,14 +52,14 @@ def main(
 
 def run(
     filename: str,
-    template_vars: typing.Dict[str, str],
-    role_arn: typing.Optional[str] = None,
-    output_path: typing.Optional[str] = None,
+    template_vars: dict[str, str],
+    role_arn: str | None = None,
+    output_path: str | None = None,
     create_missing_services=False,
     dry_run=False,
 ):
     base_path = os.path.dirname(filename)
-    with open(filename, "r") as fh:
+    with open(filename) as fh:
         config = yaml.safe_load(fh.read())
 
     connection = Connection(role_arn)

@@ -4,8 +4,6 @@ import sys
 import time
 import typing
 
-import pytz
-
 from ecs_deplojo import utils
 from ecs_deplojo.connection import Connection
 from ecs_deplojo.exceptions import DeploymentFailed
@@ -19,9 +17,9 @@ from ecs_deplojo.task_definitions import TaskDefinition
 
 
 def start_deployment(
-    config: typing.Dict[str, typing.Any],
+    config: dict[str, typing.Any],
     connection: Connection,
-    task_definitions: typing.Dict[str, TaskDefinition],
+    task_definitions: dict[str, TaskDefinition],
     create_missing_services: bool = False,
 ) -> None:
     """Start the deployment.
@@ -46,7 +44,7 @@ def start_deployment(
     )
     if not create_missing_services and new_services:
         names = ", ".join(new_services)
-        raise DeploymentFailed("The following services are missing: %s" % names)
+        raise DeploymentFailed(f"The following services are missing: {names}")
 
     # Register the task definitions in ECS
     register_task_definitions(connection, task_definitions)
@@ -100,7 +98,7 @@ def start_deployment(
 
 
 def wait_for_deployments(
-    connection: Connection, cluster_name: str, service_names: typing.List[str]
+    connection: Connection, cluster_name: str, service_names: list[str]
 ) -> bool:
     """Poll ECS until all deployments are finished (status = PRIMARY)"""
     logger.info("Waiting for deployments")
@@ -117,19 +115,17 @@ def wait_for_deployments(
             pending = deployment["pendingCount"]
             running = deployment["runningCount"]
 
-            return "%s (%s/%s)" % (name, pending + running, desired)
+            return f"{name} ({pending + running}/{desired})"
         return name
 
     # Wait till all service updates are deployed
     time.sleep(5)
 
-    utc_timestamp = datetime.datetime.utcnow().replace(
-        tzinfo=pytz.utc
-    ) - datetime.timedelta(seconds=5)
+    utc_timestamp = datetime.datetime.now(datetime.UTC) - datetime.timedelta(seconds=5)
     last_event_timestamps = {name: utc_timestamp for name in service_names}
-    logged_message_ids: typing.Set[str] = set()
+    logged_message_ids: set[str] = set()
     ready_timestamp = None
-    last_message = datetime.datetime.now()
+    last_message = datetime.datetime.now(datetime.UTC)
 
     while True:
         services = utils.describe_services(
@@ -145,11 +141,11 @@ def wait_for_deployments(
             logger.info(
                 "%s - %s", message["createdAt"].strftime("%H:%M:%S"), message["message"]
             )
-            last_message = datetime.datetime.now()
+            last_message = datetime.datetime.now(datetime.UTC)
 
         # 5 Seconds after the deployment is no longer in progress we mark it
         # as done.
-        offset = datetime.datetime.utcnow() - datetime.timedelta(seconds=5)
+        offset = datetime.datetime.now(datetime.UTC) - datetime.timedelta(seconds=5)
         if ready_timestamp and offset > ready_timestamp:
             logger.info(
                 "Deployment finished: %s",
@@ -160,10 +156,12 @@ def wait_for_deployments(
         # Set is_ready after the previous check so that we can wait for x
         # more seconds before ending the operation successfully.
         if not in_progress:
-            ready_timestamp = datetime.datetime.utcnow()
+            ready_timestamp = datetime.datetime.now(datetime.UTC)
 
         # So we haven't printed something for a while, let's give some feedback
-        elif last_message < datetime.datetime.now() - datetime.timedelta(seconds=10):
+        elif last_message < datetime.datetime.now(datetime.UTC) - datetime.timedelta(
+            seconds=10
+        ):
             logger.info(
                 "Still waiting for: %s",
                 ", ".join([s["serviceName"] for s in in_progress]),
@@ -178,12 +176,13 @@ def wait_for_deployments(
 
 def extract_new_event_messages(
     services, last_timestamps, logged_message_ids
-) -> typing.Generator[typing.Dict[str, typing.Any], None, None]:
+) -> typing.Generator[dict[str, typing.Any], None, None]:
     for service in services:
-        events = []
-        for event in service["events"]:
-            if event["createdAt"] > last_timestamps[service["serviceName"]]:
-                events.append(event)
+        events = [
+            event
+            for event in service["events"]
+            if event["createdAt"] > last_timestamps[service["serviceName"]]
+        ]
 
         for event in reversed(events):
             if event["id"] not in logged_message_ids:
@@ -209,9 +208,7 @@ def run_tasks(connection, cluster_name, task_definitions, tasks) -> None:
     :type tasks: list
 
     """
-    num = 0
-
-    for task in tasks:
+    for num, task in enumerate(tasks):
         task_def = task_definitions[task["task_definition"]]
         logger.info(
             "Starting one-off task '%s' via %s (%s)",
@@ -240,4 +237,3 @@ def run_tasks(connection, cluster_name, task_definitions, tasks) -> None:
                 time.sleep(5)
             else:
                 sys.exit(1)
-        num += 1

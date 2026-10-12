@@ -20,7 +20,7 @@ def test_cli_execution_existing_service(
     runner = CliRunner()
     result = runner.invoke(
         cli.main,
-        ["--config=%s" % example_project.strpath, "--var=image=my-docker-image:1.0"],
+        [f"--config={example_project.strpath}", "--var=image=my-docker-image:1.0"],
     )
     assert result.exit_code == 0, result.output
 

@@ -2,7 +2,6 @@ import copy
 import json
 import operator
 import os.path
-import typing
 from string import Template
 
 
@@ -40,7 +39,7 @@ class TaskDefinition:
             )
         return result
 
-    def apply_variables(self, variables: typing.Dict[str, str]):
+    def apply_variables(self, variables: dict[str, str]):
         """Interpolate all the variables used in the task definition"""
         for container in self.container_definitions:
             container["image"] = Template(container["image"]).substitute(variables)
@@ -57,12 +56,12 @@ class TaskDefinition:
                 else:
                     container[key] = value
 
-    def set_environment(self, env: typing.Dict[str, str]):
+    def set_environment(self, env: dict[str, str]):
         """Interpolate all the variables used in the task definition"""
         for container in self.container_definitions:
             container["environment"] = env
 
-    def set_secrets(self, secrets: typing.Dict[str, str]):
+    def set_secrets(self, secrets: dict[str, str]):
         """Interpolate all the secrets used in the task definition.
 
         Secrets will be fetched from the AWS Parameter store and injected in the
@@ -86,11 +85,11 @@ class TaskDefinition:
         return json.dumps(self._data)
 
     @property
-    def tags(self) -> typing.List[typing.Dict[str, str]]:
+    def tags(self) -> list[dict[str, str]]:
         return self._data.get("tags")
 
     @tags.setter
-    def tags(self, value: typing.List[typing.Dict[str, str]]):
+    def tags(self, value: list[dict[str, str]]):
         self._data["tags"] = value
 
     @property
@@ -150,7 +149,7 @@ class TaskDefinition:
         self._data["containerDefinitions"] = value
 
     @property
-    def network_mode(self) -> typing.Optional[str]:
+    def network_mode(self) -> str | None:
         return self._data.get("networkMode", None)
 
     @network_mode.setter
@@ -160,7 +159,7 @@ class TaskDefinition:
 
 def generate_task_definitions(
     config, template_vars, base_path, output_path=None
-) -> typing.Dict[str, TaskDefinition]:
+) -> dict[str, TaskDefinition]:
     """Generate the task definitions
 
     :parameter config: The yaml config contents
@@ -203,20 +202,20 @@ def generate_task_definitions(
 
 def generate_task_definition(
     filename: str,
-    environment: typing.Dict[str, str],
+    environment: dict[str, str],
     template_vars,
     overrides,
     name,
     base_path=None,
     task_role_arn=None,
-    secrets: typing.Dict[str, str] = {},
+    secrets: dict[str, str] | None = None,
     execution_role_arn=None,
 ) -> TaskDefinition:
     """Generate the task definitions."""
     if base_path:
         filename = os.path.join(base_path, filename)
 
-    with open(filename, "r") as fh:
+    with open(filename) as fh:
         task_definition = TaskDefinition.load(fh)
 
     task_definition.family = name
@@ -234,7 +233,7 @@ def generate_task_definition(
         for container in task_definition.container_definitions:
             hostname = task_definition.family
             if num_containers > 1:
-                hostname += "-%s" % container["name"].replace("_", "-")
+                hostname += "-" + container["name"].replace("_", "-")
             container.setdefault("hostname", hostname)
 
     task_definition.set_environment(environment)
@@ -248,6 +247,6 @@ def generate_task_definition(
 
 
 def write_task_definition(name: str, definition: TaskDefinition, output_path) -> None:
-    filename = os.path.join(output_path, "%s.json" % name)
+    filename = os.path.join(output_path, f"{name}.json")
     with open(filename, "w") as fh:
         json.dump(definition.as_dict(), fh, indent=4)
