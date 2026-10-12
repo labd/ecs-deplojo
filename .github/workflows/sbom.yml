@@ -32,18 +32,67 @@ jobs:
         id: syft
 
       # Scan site-packages only; .venv/bin links to the interpreter outside the env.
+      # SPDX for the release page, CycloneDX 1.6 for DependencyTrack. File-level
+      # entries are dropped: they only list dist-info files with build paths.
       - name: Generate SBOM
         env:
           SYFT: ${{ steps.syft.outputs.cmd }}
+          SYFT_FILE_METADATA_SELECTION: none
           TAG: ${{ github.event.release.tag_name }}
-        run: >-
-          "$SYFT" dir:.venv/lib
-          --source-name ecs-deplojo
-          --source-version "$TAG"
-          -o spdx-json=ecs-deplojo.spdx.json
+        run: |
+          set -euo pipefail
+          "$SYFT" dir:.venv/lib \
+            --source-name ecs-deplojo \
+            --source-version "$TAG" \
+            -o spdx-json=ecs-deplojo.spdx.json \
+            -o cyclonedx-json@1.6=ecs-deplojo.raw.cdx.json
+          # The package's own entry points at the local checkout (file://); drop it.
+          jq '.components |= map(if .externalReferences then .externalReferences |= map(select(.url | startswith("file://") | not)) else . end)' \
+            ecs-deplojo.raw.cdx.json > ecs-deplojo.cdx.json
 
       - name: Attach SBOM to release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.event.release.tag_name }}
-        run: gh release upload "$TAG" ecs-deplojo.spdx.json --clobber
+        run: gh release upload "$TAG" ecs-deplojo.spdx.json ecs-deplojo.cdx.json --clobber
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sbom-cyclonedx
+          path: ecs-deplojo.cdx.json
+          retention-days: 7
+
+  # Separate job so the DT key is never present while repo code runs
+  # (uv sync above executes the build backend).
+  dependencytrack:
+    needs: sbom
+    if: github.event_name == 'release' && startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: sbom-cyclonedx
+
+      # Each release becomes a version under the "oss/python/ecs-deplojo"
+      # library container (OSS > OSS Python), which rolls up the latest version.
+      - name: Upload SBOM to DependencyTrack
+        env:
+          DT_API_KEY: ${{ secrets.DEPENDENCYTRACK_OSS_APIKEY }}
+          DT_URL: https://dependencytrack-api.labdigital.nl:8443
+          PROJECT: oss/python/ecs-deplojo
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          if [ -z "${DT_API_KEY}" ]; then
+            echo "::error::DEPENDENCYTRACK_OSS_APIKEY is not available to this repo"
+            exit 1
+          fi
+          curl -sS --fail-with-body -X POST "${DT_URL}/api/v1/bom" \
+            -H "X-Api-Key: ${DT_API_KEY}" \
+            -F "autoCreate=true" \
+            -F "projectName=${PROJECT}" \
+            -F "projectVersion=${TAG}" \
+            -F "parentName=${PROJECT}" \
+            -F "isLatest=true" \
+            -F "bom=@ecs-deplojo.cdx.json"
