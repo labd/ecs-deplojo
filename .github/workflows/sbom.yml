@@ -16,8 +16,34 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: anchore/sbom-action@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26 # v0.24.2
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          format: spdx-json
-          artifact-name: ecs-deplojo.spdx.json
-          upload-release-assets: true
+          python-version: "3.14"
+
+      - name: Install uv
+        run: python -m pip install uv
+
+      # Package plus locked runtime dependencies only, so the SBOM matches what
+      # users install from PyPI. Non-editable so the version comes from the tag.
+      - name: Install runtime environment
+        run: uv sync --frozen --no-default-groups --no-editable
+
+      - uses: anchore/sbom-action/download-syft@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        id: syft
+
+      # Scan site-packages only; .venv/bin links to the interpreter outside the env.
+      - name: Generate SBOM
+        env:
+          SYFT: ${{ steps.syft.outputs.cmd }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: >-
+          "$SYFT" dir:.venv/lib
+          --source-name ecs-deplojo
+          --source-version "$TAG"
+          -o spdx-json=ecs-deplojo.spdx.json
+
+      - name: Attach SBOM to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: gh release upload "$TAG" ecs-deplojo.spdx.json --clobber
