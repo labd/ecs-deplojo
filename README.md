@@ -19,9 +19,6 @@ Status
 .. image:: <https://github.com/labd/ecs-deplojo/workflows/Python%20Tests/badge.svg>
     :target: <https://github.com/labd/ecs-deplojo/actions?query=workflow%3A%22Python+Tests%22>
 
-.. image:: <http://codecov.io/github/LabD/ecs-deplojo/coverage.svg?branch=master>
-    :target: <http://codecov.io/github/LabD/ecs-deplojo?branch=master>
-
 .. image:: <https://img.shields.io/pypi/v/ecs-deplojo.svg>
     :target: <https://pypi.python.org/pypi/ecs-deplojo/>
 

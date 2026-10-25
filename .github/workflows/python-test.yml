@@ -46,5 +46,4 @@ jobs:
     - name: Coverage report
       run: |
         uv run coverage combine
-        uv run coverage xml
         uv run coverage report
