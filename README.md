@@ -133,3 +133,13 @@ Waiting for services: web (2/2)
 Deployment finished: web (2/2)
 Starting one-off task 'manage.py clearsessions' via manage:10 (uwsgi)
 ```
+
+## Releasing
+
+Releases are managed with [changie](https://changie.dev):
+
+1. Add a changelog entry to your pull request with `changie new`.
+2. After merging to `main`, a release pull request is opened (or updated)
+   automatically, with the new version and the updated `CHANGELOG.md`.
+3. Merging the release pull request creates the GitHub release, which publishes
+   the package to PyPI.
