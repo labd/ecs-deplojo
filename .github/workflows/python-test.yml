@@ -1,49 +1,47 @@
 name: Python Tests
 
-on: [push]
+on:
+  push:
+    branches: ["main"]
+  pull_request:
 
 permissions:
   contents: read
 
 jobs:
-
-  format:
+  lint:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      with:
-        persist-credentials: false
-    - name: Set up Python 3.14
-      uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
-      with:
-        python-version: "3.14"
-    - name: Install dependencies
-      run: python -m pip install --upgrade uv
-    # Use the ruff version from uv.lock so new ruff releases don't change CI results
-    - name: Validate formatting
-      run: uv run --frozen --group test ruff check src/ tests/
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          python-version: "3.14"
+      # Use the ruff version from uv.lock so new ruff releases don't change CI results
+      - name: Check formatting
+        run: uv run --frozen --group test ruff format --check
+      - name: Lint
+        run: uv run --frozen --group test ruff check
 
   test:
     runs-on: ubuntu-latest
     strategy:
-      max-parallel: 4
+      fail-fast: false
       matrix:
-        python-version: ["3.12", "3.13", "3.14"]
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
     steps:
-    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      with:
-        persist-credentials: false
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade uv
-        uv sync --group test
-    - name: Test with pytest
-      run: uv run coverage run --source ecs_deplojo --parallel -m pytest
-    - name: Coverage report
-      run: |
-        uv run coverage combine
-        uv run coverage report
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: uv sync --frozen --group test
+      - name: Test with pytest
+        run: uv run --frozen coverage run --source ecs_deplojo --parallel -m pytest
+      - name: Coverage report
+        run: |
+          uv run --frozen coverage combine
+          uv run --frozen coverage report
