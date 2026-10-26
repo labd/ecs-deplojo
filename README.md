@@ -1,88 +1,72 @@
-ecs-deplojo
-===========
+# ecs-deplojo
+
+[![PyPI](https://img.shields.io/pypi/v/ecs-deplojo)](https://pypi.org/project/ecs-deplojo/)
+[![Python Tests](https://github.com/labd/ecs-deplojo/actions/workflows/python-test.yml/badge.svg)](https://github.com/labd/ecs-deplojo/actions/workflows/python-test.yml)
 
 Deployment tool for Amazon ECS.
 
-Installation
-------------
+## Installation
 
-`pip install ecs-deplojo`
+```console
+pip install ecs-deplojo
+```
 
-.. start-no-pypi
+## Usage
 
-Status
-------
+```console
+Usage: ecs-deplojo [OPTIONS]
 
-.. image:: <https://readthedocs.org/projects/ecs-deplojo/badge/?version=latest>
-    :target: <https://readthedocs.org/projects/ecs-deplojo/>
+Options:
+  --config FILENAME   [required]
+  --var VAR
+  --dry-run
+  --output-path PATH
+  --role-arn <optional arn>
+  --help              Show this message and exit.
+```
 
-.. image:: <https://github.com/labd/ecs-deplojo/workflows/Python%20Tests/badge.svg>
-    :target: <https://github.com/labd/ecs-deplojo/actions?query=workflow%3A%22Python+Tests%22>
+## Example configuration
 
-.. image:: <https://img.shields.io/pypi/v/ecs-deplojo.svg>
-    :target: <https://pypi.python.org/pypi/ecs-deplojo/>
+```yaml
+---
+cluster_name: example
 
-.. end-no-pypi
+environment:
+    DATABASE_URL: postgresql://
 
-Usage
------
+task_definitions:
+  web:
+    template: task_definitions/web.json
+    overrides:
+      uwsgi:
+        memory: 512
+        portMappings:
+          - hostPort: 0
+            containerPort: 8080
+            protocol: tcp
+  manage:
+    template: task_definitions/manage.json
 
-.. code-block:: console
+services:
+  web:
+    task_definition: web
 
-    Usage: ecs-deplojo [OPTIONS]
+scheduled_tasks:
+  cron-event:
+    task_definition: web
 
-    Options:
-      --config FILENAME   [required]
-      --var VAR
-      --dry-run
-      --output-path PATH
-      --role-arn <optional arn>
-      --help              Show this message and exit.
+before_deploy:
+  - task_definition: manage
+    container: uwsgi
+    command: manage.py migrate --noinput
 
-Example configuration
----------------------
+after_deploy:
+  - task_definition: manage
+    container: uwsgi
+    command: manage.py clearsessions
+```
 
-.. code-block:: yaml
-
-    ---
-    cluster_name: example
-
-    environment:
-        DATABASE_URL: postgresql://
-
-    task_definitions:
-      web:
-        template: task_definitions/web.json
-        overrides:
-          uwsgi:
-            memory: 512
-            portMappings:
-              - hostPort: 0
-                containerPort: 8080
-                protocol: tcp
-      manage:
-        template: task_definitions/manage.json
-
-    services:
-      web:
-        task_definition: web
-
-    scheduled_tasks:
-      cron-event:
-        task_definition: web
-
-    before_deploy:
-      - task_definition: manage
-        container: uwsgi
-        command: manage.py migrate --noinput
-
-    after_deploy:
-      - task_definition: manage
-        container: uwsgi
-        command: manage.py clearsessions
-
-Using SSM secrets
------------------
+## Using SSM secrets
 
 **Warning secrets will become visible in the container's environent, use with caution**
 
@@ -95,61 +79,57 @@ the startup of your Docker container.
 
 **Example configuration:**
 
-.. code-block:: yaml
+```yaml
+--
+cluster_name: example
 
-    --
-    cluster_name: example
+environment:
+  NORMAL_ENV_VAR: value_of_variable
 
-    environment:
-      NORMAL_ENV_VAR: value_of_variable
+secrets:
+  DATABASE_URL: /path/to/secret/DATABASE_URL
 
-    secrets:
-      DATABASE_URL: /path/to/secret/DATABASE_URL
+task_definitions:
+  web:
+    execution_role_arn: arn:aws:iam::<account_id>:role/execution_role_name
+    template: task_definitions/web.json
 
-    task_definitions:
-      web:
-        execution_role_arn: arn:aws:iam::<account_id>:role/execution_role_name
-        template: task_definitions/web.json
-
-    services:
-      web:
-        task_definition: web
+services:
+  web:
+    task_definition: web
+```
 
 When the container is started the secrets are available as environment variables and
 hidden in the AWS ECS console, this is not recommended in production.
 
-AWS Default VPC
----------------
+## AWS Default VPC
 
-When running your servers in the AWS default VPC you need ``networkMode="awsvpc"`` in
+When running your servers in the AWS default VPC you need `networkMode="awsvpc"` in
 your task definition JSON file, this will ensure that no hostnames are set for the
 containers, since this isn't supported by AWS.
 
-AWS Fargate
------------
+## AWS Fargate
 
-Unlike EC2 based clusters AWS Fargate needs a ``execution_role_arn`` to work, this can be
+Unlike EC2 based clusters AWS Fargate needs a `execution_role_arn` to work, this can be
 set in your service definition in the YAML file.
 
-AWS Scheduled tasks
--------------------
+## AWS Scheduled tasks
 
 The configuration block 'scheduled_tasks' contains the name over the rule in EventBridge
 as key, and a reference to the task_definition whose taskDefinitionArn will be used to
 update the task definition on the scheduled target.
 
-Example log output
-------------------
+## Example log output
 
-.. code-block:: console
-
-    Starting deploy on cluster example (1 services)
-    Registered new task definition web:10
-    Starting one-off task 'manage.py migrate --noinput' via manage:10 (uwsgi)
-    Updating service web with task defintion web:10
-    Waiting for deployments
-    Waiting for services: web (0/2)
-    Waiting for services: web (1/2)
-    Waiting for services: web (2/2)
-    Deployment finished: web (2/2)
-    Starting one-off task 'manage.py clearsessions' via manage:10 (uwsgi)
+```console
+Starting deploy on cluster example (1 services)
+Registered new task definition web:10
+Starting one-off task 'manage.py migrate --noinput' via manage:10 (uwsgi)
+Updating service web with task defintion web:10
+Waiting for deployments
+Waiting for services: web (0/2)
+Waiting for services: web (1/2)
+Waiting for services: web (2/2)
+Deployment finished: web (2/2)
+Starting one-off task 'manage.py clearsessions' via manage:10 (uwsgi)
+```
