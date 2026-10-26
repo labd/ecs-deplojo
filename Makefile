@@ -6,10 +6,10 @@ clean:
 	find . -name '*.egg-info' -delete
 
 coverage:
-	py.test --cov=ecs_deplojo --cov-report=term-missing --cov-report=xml
+	uv run --group test pytest --cov=ecs_deplojo --cov-report=term-missing --cov-report=xml
 
 install:
-	uv sync --all-extras --group test
+	uv sync --group test
 
 docker-build:
 	docker build -t labdigital/ecs-deplojo:0.9.2 .
@@ -18,16 +18,11 @@ docker-push:
 	docker push labdigital/ecs-deplojo:0.9.2
 
 lint:
-	ruff check src/ tests/
+	uv run --group test ruff format --check
+	uv run --group test ruff check
 
 test:
-	py.test -vvv tests/
+	uv run --group test pytest -vvv tests/
 
 format:
-	ruff format src tests
-
-release:
-	pip install twine wheel
-	rm -rf dist/*
-	python setup.py sdist bdist_wheel
-	twine upload -s dist/*
+	uv run --group test ruff format
